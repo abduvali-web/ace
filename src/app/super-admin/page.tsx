@@ -98,6 +98,55 @@ export default function SuperAdminPage() {
   const [createError, setCreateError] = useState('')
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [selectedPassword, setSelectedPassword] = useState('')
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    password: ''
+  })
+  const [adminName, setAdminName] = useState('Super Admin') // Added adminName state
+
+  useEffect(() => {
+    // Initialize profile form with current user data
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      setAdminName(user.name || 'Super Admin')
+      setProfileForm(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }))
+    }
+  }, [])
+
+  const handleUpdateProfile = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/admin/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profileForm)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem('user', JSON.stringify(data.user))
+        setAdminName(data.user.name)
+        setIsProfileOpen(false)
+        setProfileForm(prev => ({ ...prev, password: '' })) // Clear password
+        toast.success('Профиль успешно обновлен')
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Ошибка обновления профиля')
+      }
+    } catch (error) {
+      toast.error('Ошибка соединения с сервером')
+    }
+  }
 
   useEffect(() => {
     // Check authentication
@@ -278,10 +327,59 @@ export default function SuperAdminPage() {
               <h1 className="text-xl font-semibold text-slate-900">Панель Супер Администратора</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => toast.info('Профиль администратора', { description: 'Функционал редактирования профиля в разработке' })}>
-                <User className="w-4 h-4 mr-2" />
-                Профиль
-              </Button>
+              <div className="flex items-center gap-4">
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium text-foreground">{adminName}</p>
+                  <p className="text-xs text-muted-foreground">Super Admin</p>
+                </div>
+
+                <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted/50">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Редактирование профиля</DialogTitle>
+                      <DialogDescription>
+                        Измените свои личные данные здесь. Нажмите сохранить, когда закончите.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Имя</Label>
+                        <Input
+                          id="name"
+                          value={profileForm.name}
+                          onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileForm.email}
+                          onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="password">Новый пароль (оставьте пустым, если не меняете)</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={profileForm.password}
+                          onChange={(e) => setProfileForm({ ...profileForm, password: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleUpdateProfile}>Сохранить изменения</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Выйти
