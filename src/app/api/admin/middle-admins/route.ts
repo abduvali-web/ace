@@ -1,43 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
+import { hash } from 'bcryptjs'
 
-// Simple mock token verification
-function verifyToken(token: string) {
-  try {
-    if (token && token.length > 10) {
-      return {
-        id: '1',
-        email: 'super@admin.com',
-        name: 'Super Admin',
-        role: 'SUPER_ADMIN'
-      }
-    }
-    return null
-  } catch (error) {
-    return null
-  }
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    
-    if (!user) {
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, JWT_SECRET)
+      if (decoded.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
-    if (user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-    }
 
-    // Get middle admins from global storage
-    const admins = (global as any).admins || []
-    const middleAdmins = admins.filter((admin: any) => admin.role === 'MIDDLE_ADMIN')
+    // Get middle admins from DB
+    const middleAdmins = await db.admin.findMany({
+      where: {
+        role: 'MIDDLE_ADMIN'
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
 
     return NextResponse.json(middleAdmins)
   } catch (error) {
@@ -49,19 +51,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    
-    if (!user) {
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, JWT_SECRET)
+      if (decoded.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    }
-    
-    if (user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     const { email, password, name } = await request.json()
@@ -70,30 +72,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Все поля обязательны' }, { status: 400 })
     }
 
-    // Get admins from global storage
-    const admins = (global as any).admins || []
-    
     // Check if admin already exists
-    const existingAdmin = admins.find((admin: any) => admin.email === email)
+    const existingAdmin = await db.admin.findUnique({
+      where: { email }
+    })
+
     if (existingAdmin) {
       return NextResponse.json({ error: 'Администратор с таким email уже существует' }, { status: 400 })
     }
 
-    // Create new middle admin
-    const newAdmin = {
-      id: Date.now().toString(),
-      email,
-      password: password, // In a real app, this would be hashed
-      name,
-      role: 'MIDDLE_ADMIN',
-      isActive: true,
-      createdBy: user.id,
-      createdAt: new Date().toISOString()
-    }
+    // Hash password
+    const hashedPassword = await hash(password, 12)
 
-    // Add to global storage
-    admins.push(newAdmin)
-    ;(global as any).admins = admins
+    // Create new middle admin
+    const newAdmin = await db.admin.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: 'MIDDLE_ADMIN',
+        isActive: true,
+        createdBy: decoded.id
+      }
+    })
+
+    // Log action
+    await db.actionLog.create({
+      data: {
+        adminId: decoded.id,
+        action: 'CREATE_ADMIN',
+        entityType: 'ADMIN',
+        entityId: newAdmin.id,
+        description: `Created middle admin ${newAdmin.name} (${newAdmin.email})`
+      }
+    })
 
     return NextResponse.json({
       id: newAdmin.id,
