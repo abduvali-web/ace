@@ -81,6 +81,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Администратор с таким email уже существует' }, { status: 400 })
     }
 
+    // Verify creator exists
+    const creator = await db.admin.findUnique({
+      where: { id: decoded.id }
+    })
+
+    if (!creator) {
+      return NextResponse.json({ error: 'Сессия недействительна. Пожалуйста, войдите снова.' }, { status: 401 })
+    }
+
     // Hash password
     const hashedPassword = await hash(password, 12)
 
@@ -92,7 +101,7 @@ export async function POST(request: NextRequest) {
         name,
         role: 'MIDDLE_ADMIN',
         isActive: true,
-        createdBy: decoded.id
+        createdBy: creator.id
       }
     })
 
