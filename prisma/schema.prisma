@@ -1,5 +1,5 @@
-// Delivery Management System Schema
-// Complex system with 3-tier admin hierarchy and order management
+// Delivery Management System Schema (PostgreSQL)
+// Same models as default schema, but datasource provider is postgresql
 
 generator client {
   provider = "prisma-client-js"
@@ -10,26 +10,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Users with different roles
 model Admin {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  password     String
-  name         String
-  role         AdminRole @default(SUPER_ADMIN)
-  isActive     Boolean  @default(true)
-  createdBy    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  // Relations
-  createdAdmins Admin[] @relation("AdminHierarchy")
-  creator       Admin?  @relation("AdminHierarchy", fields: [createdBy], references: [id])
-  orders        Order[] @relation("OrderAdmin")
-  courierOrders Order[] @relation("OrderCourier")
-  actionLogs    ActionLog[]
+  id              String         @id @default(cuid())
+  email           String         @unique
+  password        String
+  name            String
+  role            AdminRole      @default(SUPER_ADMIN)
+  isActive        Boolean        @default(true)
+  createdBy       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  createdAdmins   Admin[]        @relation("AdminHierarchy")
+  creator         Admin?         @relation("AdminHierarchy", fields: [createdBy], references: [id])
+  orders          Order[]        @relation("OrderAdmin")
+  courierOrders   Order[]        @relation("OrderCourier")
+  actionLogs      ActionLog[]
   interfaceConfig InterfaceConfig?
-  
+
   @@map("admins")
 }
 
@@ -40,49 +37,46 @@ enum AdminRole {
   COURIER
 }
 
-// Customers
 model Customer {
   id           String   @id @default(cuid())
   name         String
   phone        String   @unique
   address      String
-  preferences  String?  // JSON string for special preferences
-  orderPattern String?  // daily, every_other_day_even, every_other_day_odd
+  preferences  String?
+  orderPattern String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   orders       Order[]
-  
+
   @@map("customers")
 }
 
-// Orders
 model Order {
-  id              String     @id @default(cuid())
-  orderNumber     Int        @unique
+  id              String         @id @default(cuid())
+  orderNumber     Int            @unique
   customerId      String
   adminId         String
   courierId       String?
   deliveryAddress String
-  deliveryDate    DateTime?  // Date of delivery
-  deliveryTime    String     // morning, afternoon, evening
-  quantity        Int        @default(1)
+  deliveryDate    DateTime?
+  deliveryTime    String
+  quantity        Int            @default(1)
   calories        Int
-  specialFeatures String?    // JSON string
+  specialFeatures String?
   paymentStatus   PaymentStatus
   paymentMethod   PaymentMethod
-  orderStatus     OrderStatus @default(PENDING)
-  isPrepaid       Boolean    @default(false)
-  deliveredAt     DateTime?  // When the order was delivered
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  
-  // Relations
+  orderStatus     OrderStatus    @default(PENDING)
+  isPrepaid       Boolean        @default(false)
+  deliveredAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
   customer  Customer @relation(fields: [customerId], references: [id])
   admin     Admin    @relation("OrderAdmin", fields: [adminId], references: [id])
   courier   Admin?   @relation("OrderCourier", fields: [courierId], references: [id])
-  
+
   @@map("orders")
 }
 
@@ -104,34 +98,30 @@ enum OrderStatus {
   FAILED
 }
 
-// Action logs for history tracking
 model ActionLog {
   id          String   @id @default(cuid())
   adminId     String
   action      String
-  entityType  String   // order, admin, customer, etc.
+  entityType  String
   entityId    String
-  oldValues   String?  // JSON string
-  newValues   String?  // JSON string
+  oldValues   String?
+  newValues   String?
   description String?
   createdAt   DateTime @default(now())
-  
-  // Relations
+
   admin Admin @relation(fields: [adminId], references: [id])
-  
+
   @@map("action_logs")
 }
 
-// Interface configuration for each admin
 model InterfaceConfig {
-  id           String @id @default(cuid())
-  adminId      String @unique
-  buttonConfig String // JSON string for button positions and visibility
+  id           String   @id @default(cuid())
+  adminId      String   @unique
+  buttonConfig String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  // Relations
+
   admin Admin @relation(fields: [adminId], references: [id])
-  
+
   @@map("interface_configs")
 }
