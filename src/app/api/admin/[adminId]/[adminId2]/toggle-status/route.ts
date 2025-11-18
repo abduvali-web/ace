@@ -1,44 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
-// Simple mock token verification
-function verifyToken(token: string) {
-  try {
-    if (token && token.length > 10) {
-      return {
-        id: '1',
-        email: 'super@admin.com',
-        name: 'Super Admin',
-        role: 'SUPER_ADMIN'
-      }
-    }
-    return null
-  } catch (error) {
-    return null
-  }
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ adminId: string; adminId2: string }> }
 ) {
   try {
+    const { adminId, adminId2 } = await params
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    
-    if (!user) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any
+      if (decoded.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
-    if (user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-    }
 
-    const adminId = params.id
     const body = await request.json()
     const { isActive } = body
 
@@ -46,21 +32,40 @@ export async function PATCH(
       return NextResponse.json({ error: 'Неверный формат данных' }, { status: 400 })
     }
 
-    // Get admins from global storage
-    const admins = (global as any).admins || []
-    const adminIndex = admins.findIndex((admin: any) => admin.id === adminId)
+    // Check if admin exists
+    const adminToUpdate = await db.admin.findUnique({
+      where: { id: adminId2 }
+    })
 
-    if (adminIndex === -1) {
+    if (!adminToUpdate) {
       return NextResponse.json({ error: 'Администратор не найден' }, { status: 404 })
     }
 
+    // Prevent deactivating yourself
+    if (adminId === adminId2 && !isActive) {
+      return NextResponse.json({ error: 'Нельзя деактивировать самого себя' }, { status: 400 })
+    }
+
     // Update admin status
-    admins[adminIndex].isActive = isActive
-    ;(global as any).admins = admins
+    const updatedAdmin = await db.admin.update({
+      where: { id: adminId2 },
+      data: { isActive }
+    })
+
+    // Log action
+    await db.actionLog.create({
+      data: {
+        adminId: adminId,
+        action: isActive ? 'ACTIVATE_ADMIN' : 'DEACTIVATE_ADMIN',
+        entityType: 'ADMIN',
+        entityId: adminId2,
+        description: `${isActive ? 'Activated' : 'Deactivated'} admin ${updatedAdmin.name}`
+      }
+    })
 
     return NextResponse.json({
       message: `Статус администратора успешно ${isActive ? 'активирован' : 'приостановлен'}`,
-      admin: admins[adminIndex]
+      admin: updatedAdmin
     })
 
   } catch (error) {
