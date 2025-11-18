@@ -15,21 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "AutoFood - Delivery Management System",
+  description: "Smart delivery management system with AI-powered routing and comprehensive admin dashboard.",
+  keywords: ["AutoFood", "Delivery", "Management", "AI Routing", "Next.js", "React"],
+  authors: [{ name: "AutoFood Team" }],
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "AutoFood - Delivery Management System",
+    description: "Smart delivery management system with AI-powered routing and comprehensive admin dashboard.",
+    url: "https://autofood.vercel.app/",
+    siteName: "AutoFood",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "AutoFood - Delivery Management System",
+    description: "Smart delivery management system with AI-powered routing and comprehensive admin dashboard.",
   },
 };
 
