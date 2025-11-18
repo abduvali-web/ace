@@ -124,8 +124,8 @@ export async function POST(request: NextRequest) {
       isActive: newAdmin.isActive,
       createdAt: newAdmin.createdAt
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating middle admin:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({ error: `Внутренняя ошибка сервера: ${error.message}` }, { status: 500 })
   }
 }
