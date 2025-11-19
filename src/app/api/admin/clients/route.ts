@@ -1,37 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
-// Simple mock token verification
-function verifyToken(token: string) {
-  try {
-    if (token && token.length > 10) {
-      return {
-        id: '1',
-        email: 'admin@example.com',
-        name: 'Middle Admin',
-        role: 'MIDDLE_ADMIN'
-      }
-    }
-    return null
-  } catch (error) {
-    return null
-  }
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    
-    if (!user) {
+    let user: any
+    try {
+      user = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -41,10 +28,10 @@ export async function GET(request: NextRequest) {
       const dbClients = await db.customer.findMany({
         orderBy: { createdAt: 'desc' }
       })
-      
+
       // Get global clients for additional data
       const globalClients = (global as any).autoOrderScheduler?.getClients() || []
-      
+
       // Merge data from database and global storage
       const mergedClients = dbClients.map(dbClient => {
         const globalClient = globalClients.find(gc => gc.phone === dbClient.phone)
@@ -70,7 +57,7 @@ export async function GET(request: NextRequest) {
           lastAutoOrderCheck: globalClient?.lastAutoOrderCheck || dbClient.createdAt.toISOString()
         }
       })
-      
+
       return NextResponse.json(mergedClients)
     } catch (dbError) {
       console.error('Database error, falling back to global storage:', dbError)
@@ -88,31 +75,32 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    
-    if (!user) {
+    let user: any
+    try {
+      user = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { 
-      name, 
-      phone, 
-      address, 
-      calories, 
-      specialFeatures, 
-      deliveryDays, 
-      autoOrdersEnabled, 
-      isActive 
+    const {
+      name,
+      phone,
+      address,
+      calories,
+      specialFeatures,
+      deliveryDays,
+      autoOrdersEnabled,
+      isActive
     } = body
 
     if (!name || !phone || !address || !calories) {
@@ -120,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date().toISOString()
-    
+
     // Create new client
     const newClient = {
       id: Date.now().toString(),
@@ -148,17 +136,17 @@ export async function POST(request: NextRequest) {
     const scheduler = (global as any).autoOrderScheduler
     if (scheduler) {
       await scheduler.addClient(newClient)
-      
+
       // Get updated orders list
       const orders = scheduler.getOrders()
-      
+
       // Find orders by customer name and phone (more reliable)
-      const autoOrders = orders.filter(order => 
-        (order.customerName === newClient.name || order.customer?.name === newClient.name) && 
+      const autoOrders = orders.filter(order =>
+        (order.customerName === newClient.name || order.customer?.name === newClient.name) &&
         (order.customerPhone === newClient.phone || order.customer?.phone === newClient.phone)
       )
-      
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         message: 'Клиент успешно создан',
         client: newClient,
         autoOrdersCreated: autoOrders.length,
@@ -166,7 +154,7 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Fallback if scheduler not available
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Клиент успешно создан',
         client: newClient,
         autoOrdersCreated: 0,
