@@ -54,6 +54,8 @@ import { StatsCards } from './components/StatsCards'
 import { OrdersTable } from './components/OrdersTable'
 import { HistoryTable } from '@/components/admin/HistoryTable'
 import { InterfaceSettings } from '@/components/admin/InterfaceSettings'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Admin {
   id: string
@@ -133,6 +135,7 @@ interface Stats {
 }
 
 export default function MiddleAdminPage() {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState('statistics')
   const [lowAdmins, setLowAdmins] = useState<Admin[]>([])
   const [orders, setOrders] = useState<Order[]>([])
@@ -1020,10 +1023,11 @@ export default function MiddleAdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-slate-900">Панель Среднего Администратора</h1>
+              <h1 className="text-xl font-semibold text-slate-900">{t.admin.dashboard}</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-slate-600">
+              <LanguageSwitcher />
+              <div className="text-sm text-slate-600 hidden md:block">
                 {new Date().toLocaleDateString('ru-RU', {
                   weekday: 'long',
                   year: 'numeric',
@@ -1037,24 +1041,23 @@ export default function MiddleAdminPage() {
               </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
-                Выйти
+                {t.common.logout}
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="statistics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Статистика
+              {t.admin.statistics}
             </TabsTrigger>
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              Заказы
+              {t.admin.orders}
             </TabsTrigger>
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -1062,15 +1065,15 @@ export default function MiddleAdminPage() {
             </TabsTrigger>
             <TabsTrigger value="admins" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Администраторы
+              {t.admin.admins}
             </TabsTrigger>
             <TabsTrigger value="interface" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
-              Интерфейс
+              {t.admin.interface}
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="w-4 h-4" />
-              История
+              {t.admin.history}
             </TabsTrigger>
           </TabsList>
 
@@ -2231,7 +2234,7 @@ export default function MiddleAdminPage() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label className="text-right font-medium">
-                      Клиент:
+                      {t.admin.clients}:
                     </Label>
                     <div className="col-span-3">
                       {selectedOrder.customer.name}
@@ -2567,7 +2570,7 @@ export default function MiddleAdminPage() {
             <HistoryTable role="MIDDLE_ADMIN" />
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </main >
+    </div >
   )
 }

@@ -38,6 +38,8 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Admin {
   id: string
@@ -82,6 +84,7 @@ interface OrderStatistics {
 }
 
 export default function SuperAdminPage() {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState('admins')
   const [middleAdmins, setMiddleAdmins] = useState<Admin[]>([])
   const [actionLogs, setActionLogs] = useState<ActionLog[]>([])
@@ -324,9 +327,10 @@ export default function SuperAdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-slate-900">Панель Супер Администратора</h1>
+              <h1 className="text-xl font-semibold text-slate-900">{t.admin.dashboard}</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <div className="flex items-center gap-4">
                 <div className="text-right hidden md:block">
                   <p className="text-sm font-medium text-foreground">{adminName}</p>
@@ -382,7 +386,7 @@ export default function SuperAdminPage() {
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
-                Выйти
+                {t.common.logout}
               </Button>
             </div>
           </div>
@@ -400,19 +404,19 @@ export default function SuperAdminPage() {
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="admins" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                Администраторы
+                {t.admin.admins}
               </TabsTrigger>
               <TabsTrigger value="interface" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
-                Интерфейс
+                {t.admin.interface}
               </TabsTrigger>
               <TabsTrigger value="statistics" className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
-                Статистика
+                {t.admin.statistics}
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="w-4 h-4" />
-                История
+                {t.admin.history}
               </TabsTrigger>
             </TabsList>
 

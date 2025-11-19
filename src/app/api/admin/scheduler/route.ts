@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Simple mock token verification
+import jwt from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+
 function verifyToken(token: string) {
   try {
-    if (token && token.length > 10) {
-      return {
-        id: '1',
-        email: 'admin@example.com',
-        name: 'Middle Admin',
-        role: 'MIDDLE_ADMIN'
-      }
-    }
-    return null
+    return jwt.verify(token, JWT_SECRET) as any
   } catch (error) {
     return null
   }
@@ -20,17 +15,17 @@ function verifyToken(token: string) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
     const user = verifyToken(token)
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -39,16 +34,16 @@ export async function POST(request: NextRequest) {
     const scheduler = (global as any).autoOrderScheduler
     if (scheduler && scheduler.runScheduler) {
       scheduler.runScheduler()
-      
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         success: true,
         message: 'Планировщик авто заказов запущен вручную',
         timestamp: new Date().toISOString()
       })
     } else {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
-        error: 'Планировщик недоступен' 
+        error: 'Планировщик недоступен'
       }, { status: 500 })
     }
 
@@ -61,17 +56,17 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
     const user = verifyToken(token)
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -81,19 +76,19 @@ export async function GET(request: NextRequest) {
     if (scheduler) {
       const clients = scheduler.getClients()
       const orders = scheduler.getOrders()
-      
+
       const today = new Date()
       const eligibleClients = clients.filter(client => {
         if (!client.isActive || !client.autoOrdersEnabled) return false
-        
+
         const created = new Date(client.createdAt)
         const lastCheck = new Date(client.lastAutoOrderCheck || client.createdAt)
         const daysSinceCreation = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
         const daysSinceLastCheck = Math.floor((today.getTime() - lastCheck.getTime()) / (1000 * 60 * 60 * 24))
-        
+
         return daysSinceCreation >= 30 || daysSinceLastCheck >= 30
       })
-      
+
       return NextResponse.json({
         status: 'Планировщик активен',
         timestamp: new Date().toISOString(),
@@ -118,9 +113,9 @@ export async function GET(request: NextRequest) {
         }))
       })
     } else {
-      return NextResponse.json({ 
+      return NextResponse.json({
         status: 'Планировщик недоступен',
-        error: 'Сервер еще не запущен' 
+        error: 'Сервер еще не запущен'
       }, { status: 503 })
     }
 

@@ -63,7 +63,20 @@ export const translations = {
             create: 'Создать',
             edit: 'Редактировать',
             delete: 'Удалить',
-            settings: 'Настройки',
+
+            compactMode: 'Компактный режим',
+            compactModeDesc: 'Уменьшает отступы в таблицах',
+            showStats: 'Показывать статистику',
+            showStatsDesc: 'Отображать карточки со статистикой',
+            animations: 'Анимации',
+            animationsDesc: 'Включить плавные переходы',
+            theme: 'Тема оформления',
+            themeDesc: 'Выберите цветовую схему',
+            light: 'Светлая',
+            dark: 'Темная',
+            system: 'Системная',
+            saveSettings: 'Сохранить настройки',
+            settingsSaved: 'Настройки сохранены',
         }
     },
     uz: {
@@ -128,7 +141,20 @@ export const translations = {
             create: 'Yaratish',
             edit: 'Tahrirlash',
             delete: 'O\'chirish',
-            settings: 'Sozlamalar',
+
+            compactMode: 'Ixcham rejim',
+            compactModeDesc: 'Jadvallardagi bo\'shliqlarni kamaytirish',
+            showStats: 'Statistikani ko\'rsatish',
+            showStatsDesc: 'Statistika kartalarini ko\'rsatish',
+            animations: 'Animatsiyalar',
+            animationsDesc: 'Silliq o\'tishlarni yoqish',
+            theme: 'Mavzu',
+            themeDesc: 'Rang sxemasini tanlang',
+            light: 'Yorug\'',
+            dark: 'Qorong\'i',
+            system: 'Tizim',
+            saveSettings: 'Sozlamalarni saqlash',
+            settingsSaved: 'Sozlamalar saqlandi',
         }
     },
     en: {
@@ -193,7 +219,20 @@ export const translations = {
             create: 'Create',
             edit: 'Edit',
             delete: 'Delete',
-            settings: 'Settings',
+
+            compactMode: 'Compact Mode',
+            compactModeDesc: 'Reduce padding in tables',
+            showStats: 'Show Statistics',
+            showStatsDesc: 'Display statistics cards',
+            animations: 'Animations',
+            animationsDesc: 'Enable smooth transitions',
+            theme: 'Theme',
+            themeDesc: 'Choose color scheme',
+            light: 'Light',
+            dark: 'Dark',
+            system: 'System',
+            saveSettings: 'Save Settings',
+            settingsSaved: 'Settings saved',
         }
     }
 }
