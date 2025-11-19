@@ -16,22 +16,70 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AutoFood - Delivery Management System",
-  description: "Smart delivery management system with AI-powered routing and comprehensive admin dashboard.",
-  keywords: ["AutoFood", "Delivery", "Management", "AI Routing", "Next.js", "React"],
-  authors: [{ name: "AutoFood Team" }],
+  metadataBase: new URL('https://autofood.uz'),
+  title: {
+    default: "AutoFood - Tizimlashtirilgan Yetkazib Berish Xizmati",
+    template: "%s | AutoFood"
+  },
+  description: "O'zbekistonda restoran va kafelar uchun eng zamonaviy yetkazib berishni avtomatlashtirish tizimi. Kuryerlar nazorati, CRM va hisobotlar.",
+  keywords: [
+    "AutoFood", "yetkazib berish", "dostavka", "restoran", "crm", "avtomatlashtirish",
+    "toshkent", "ozbekiston", "delivery system", "food delivery software",
+    "автоматизация доставки", "срм для общепита", "доставка еды ташкент"
+  ],
+  authors: [{ name: "AutoFood Team", url: "https://autofood.uz" }],
+  creator: "AutoFood Inc.",
+  publisher: "AutoFood Inc.",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: "AutoFood - Delivery Management System",
-    description: "Smart delivery management system with AI-powered routing and comprehensive admin dashboard.",
-    url: "https://autofood.vercel.app/",
+    title: "AutoFood - Biznesingizni Avtomatlashtiring",
+    description: "Restoran va kuryerlik xizmatlari uchun mukammal yechim. 30% gacha xarajatlarni qisqartiring.",
+    url: "https://autofood.uz",
     siteName: "AutoFood",
+    locale: "uz_UZ",
     type: "website",
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'AutoFood Dashboard Preview',
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AutoFood - Delivery Management System",
-    description: "Smart delivery management system with AI-powered routing and comprehensive admin dashboard.",
+    title: "AutoFood - Delivery Automation",
+    description: "Smart delivery management system for restaurants in Uzbekistan.",
+    images: ['/og-image.png'],
+    creator: "@autofood_uz",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
+  verification: {
+    google: 'google-site-verification-token',
+    yandex: 'yandex-verification-token',
+  },
+  category: 'business',
 };
 
 export default function RootLayout({

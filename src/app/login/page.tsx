@@ -216,18 +216,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2">
-                <div className="p-3 rounded-lg bg-muted/50 border border-muted text-xs space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-foreground">Супер Админ:</span>
-                    <span className="font-mono text-muted-foreground">super@admin.com</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-foreground">Пароль:</span>
-                    <span className="font-mono text-muted-foreground">admin123</span>
-                  </div>
-                </div>
-              </div>
+
             </CardContent>
             <CardFooter className="justify-center border-t border-muted/50 pt-6">
               <p className="text-xs text-center text-muted-foreground">
