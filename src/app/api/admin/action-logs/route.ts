@@ -10,7 +10,7 @@ function verifyToken(request: NextRequest) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null
   }
-  
+
   const token = authHeader.substring(7)
   try {
     return jwt.verify(token, JWT_SECRET) as any
@@ -22,7 +22,7 @@ function verifyToken(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MIDDLE_ADMIN')) {
       return NextResponse.json(
         { error: 'Доступ запрещен' },
         { status: 403 }
