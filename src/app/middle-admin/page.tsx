@@ -150,6 +150,7 @@ interface Stats {
 export default function MiddleAdminPage() {
   const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState('statistics')
+  const [currentDate, setCurrentDate] = useState('')
   const [lowAdmins, setLowAdmins] = useState<Admin[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -228,6 +229,17 @@ export default function MiddleAdminPage() {
   const [isCreatingClient, setIsCreatingClient] = useState(false)
   const [createError, setCreateError] = useState('')
   const [orderError, setOrderError] = useState('')
+  const [courierFilter, setCourierFilter] = useState<string>('all')
+
+  // Set current date on client side to avoid hydration mismatch
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString('ru-RU', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }))
+  }, [])
   const [courierError, setCourierError] = useState('')
   const [featureError, setFeatureError] = useState('')
   const [clientError, setClientError] = useState('')
@@ -1190,12 +1202,7 @@ export default function MiddleAdminPage() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-muted-foreground hidden md:block">
-                {new Date().toLocaleDateString('ru-RU', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
+                {currentDate || ' '}
               </div>
               <LanguageSwitcher />
               <UserGuide guides={[
