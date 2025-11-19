@@ -116,13 +116,15 @@ export async function POST(request: NextRequest) {
       } else {
         customer = await db.customer.findUnique({ where: { phone: customerPhone } })
         if (!customer) {
+          // Create new customer as inactive for one-time orders
           customer = await db.customer.create({
             data: {
               name: customerName,
               phone: customerPhone,
               address: deliveryAddress,
               preferences: specialFeatures,
-              orderPattern: 'daily'
+              orderPattern: 'manual',
+              isActive: false  // One-time order - client is disabled by default
             }
           })
         }
