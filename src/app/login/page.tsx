@@ -144,7 +144,7 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <Card className="glass-card border-none shadow-2xl">
+          <Card className="glass-intense border-none shadow-2xl animate-scale-in">
             <CardHeader className="space-y-1 text-center pb-8">
               <CardTitle className="text-3xl font-bold tracking-tight">{t.auth.loginTitle}</CardTitle>
               <CardDescription className="text-base">
@@ -161,7 +161,7 @@ export default function Home() {
                       id="email"
                       type="email"
                       placeholder="admin@autofood.uz"
-                      className="pl-10 h-11 bg-white/50"
+                      className="pl-10 h-11 bg-white/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-primary/50 transition-all"
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
@@ -180,7 +180,7 @@ export default function Home() {
                     <Input
                       id="password"
                       type="password"
-                      className="pl-10 h-11 bg-white/50"
+                      className="pl-10 h-11 bg-white/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-primary/50 transition-all"
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                       required
@@ -189,7 +189,7 @@ export default function Home() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-11 text-base font-medium shadow-lg shadow-primary/25 transition-all hover:scale-[1.02]"
+                  className="w-full h-11 text-base font-medium shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] btn-3d ripple"
                   disabled={isLoading}
                 >
                   {isLoading ? (

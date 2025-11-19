@@ -119,7 +119,7 @@ export default function LandingPage() {
 
                         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link href="/login" className="w-full sm:w-auto">
-                                <Button size="lg" className="w-full h-14 text-lg px-8 rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105">
+                                <Button size="lg" className="w-full h-14 text-lg px-8 rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 btn-3d ripple">
                                     Tizimga Kirish
                                     <ArrowRight className="ml-2 w-5 h-5" />
                                 </Button>
@@ -163,7 +163,7 @@ export default function LandingPage() {
                                 viewport={{ once: true }}
                                 transition={{ delay: i * 0.1 }}
                             >
-                                <Card className="h-full glass-card border-none shadow-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
+                                <Card className="h-full glass-card border-none shadow-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors hover-lift animate-slide-up">
                                     <CardHeader>
                                         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary">
                                             <feature.icon className="w-6 h-6" />
@@ -193,7 +193,7 @@ export default function LandingPage() {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                         >
-                            <Card className="h-full glass-card border-none hover:border-primary/50 transition-all duration-300 shadow-xl">
+                            <Card className="h-full glass-card border-none hover:border-primary/50 transition-all duration-300 shadow-xl hover-lift">
                                 <CardHeader className="text-center pb-2">
                                     <CardTitle className="text-2xl font-medium text-muted-foreground">1 Oy</CardTitle>
                                     <div className="flex items-baseline justify-center mt-4">
@@ -235,7 +235,7 @@ export default function LandingPage() {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                         >
-                            <Card className="h-full glass-card border-2 border-primary shadow-2xl relative overflow-hidden bg-primary/5">
+                            <Card className="h-full glass-intense border-2 border-primary shadow-2xl relative overflow-hidden bg-primary/5 hover-lift">
                                 <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg">
                                     ENG MASHHUR
                                 </div>
