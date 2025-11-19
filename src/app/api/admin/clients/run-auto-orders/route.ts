@@ -69,12 +69,17 @@ export async function POST(request: NextRequest) {
                 const deliveryDate = new Date(d)
 
                 // Check if order already exists for this client and date
+                const dayStart = new Date(d)
+                dayStart.setHours(0, 0, 0, 0)
+                const dayEnd = new Date(d)
+                dayEnd.setHours(23, 59, 59, 999)
+
                 const existingOrder = await db.order.findFirst({
                     where: {
                         customerId: client.id,
                         deliveryDate: {
-                            gte: new Date(deliveryDate.setHours(0, 0, 0, 0)),
-                            lt: new Date(deliveryDate.setHours(23, 59, 59, 999))
+                            gte: dayStart,
+                            lt: dayEnd
                         }
                     }
                 })
