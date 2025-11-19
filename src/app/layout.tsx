@@ -76,8 +76,7 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   verification: {
-    google: 'google-site-verification-token',
-    yandex: 'yandex-verification-token',
+    google: '-E7Q1ex1NuRnBvPvZqMNLA8EaDPjb__gxkOqXXuQ4Lk',
   },
   category: 'business',
 };
