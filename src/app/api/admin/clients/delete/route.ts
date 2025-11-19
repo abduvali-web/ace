@@ -1,38 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
-// Simple mock token verification
-function verifyToken(token: string) {
-  try {
-    if (token && token.length > 10) {
-      return {
-        id: '1',
-        email: 'admin@example.com',
-        name: 'Middle Admin',
-        role: 'MIDDLE_ADMIN'
-      }
-    }
-    return null
-  } catch (error) {
-    return null
-  }
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 export async function DELETE(request: NextRequest) {
   try {
     // Проверяем авторизацию
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    
-    if (!user) {
+    let user: any
+    try {
+      user = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -53,18 +40,18 @@ export async function DELETE(request: NextRequest) {
         try {
           // Удаляем заказы клиента из базы данных
           if (deleteOrders) {
-            const deletedOrdersCount = await db.order.deleteMany({
+            const deletedOrdersResult = await db.order.deleteMany({
               where: { customerId: clientId }
             })
-            deletedOrders += deletedOrdersCount
-            console.log(`✅ Deleted ${deletedOrdersCount} orders for client ${clientId}`)
+            deletedOrders += deletedOrdersResult.count
+            console.log(`✅ Deleted ${deletedOrdersResult.count} orders for client ${clientId}`)
           }
 
           // Удаляем клиента из базы данных
           const deletedClient = await db.customer.delete({
             where: { id: clientId }
           })
-          
+
           if (deletedClient) {
             deletedClients++
             console.log(`✅ Deleted client ${deletedClient.name} from database`)
@@ -76,15 +63,15 @@ export async function DELETE(request: NextRequest) {
 
       // Также удаляем из глобального storage если доступен
       const scheduler = (global as any).autoOrderScheduler
-      
+
       if (scheduler) {
         // Получаем текущие клиенты и заказы
         const currentClients = scheduler.getClients()
         const currentOrders = scheduler.getOrders()
-        
+
         // Фильтруем клиентов для удаления
         const clientsToDelete = currentClients.filter((client: any) => clientIds.includes(client.id))
-        
+
         // Удаляем заказы для этих клиентов из глобального хранилища
         if (deleteOrders) {
           const startDate = new Date()
@@ -94,22 +81,22 @@ export async function DELETE(request: NextRequest) {
           const endDate = new Date()
           endDate.setDate(endDate.getDate() + 30)
           endDate.setHours(23, 59, 59, 999)
-          
+
           const filteredOrders = currentOrders.filter((order: any) => {
             const orderDate = new Date(order.createdAt)
-            const isClientOrder = clientsToDelete.some((client: any) => 
+            const isClientOrder = clientsToDelete.some((client: any) =>
               order.customerName === client.name && order.customerPhone === client.phone
             )
             return isClientOrder && orderDate >= startDate && orderDate <= endDate
           })
-          
+
           // Удаляем заказы из scheduler
           filteredOrders.forEach((order: any) => {
             scheduler.removeOrder(order.id)
           })
           // Note: deletedOrders already counted from database deletion
         }
-        
+
         // Удаляем клиентов из scheduler
         clientsToDelete.forEach((client: any) => {
           scheduler.removeClient(client.id)
@@ -126,7 +113,7 @@ export async function DELETE(request: NextRequest) {
 
     } catch (error) {
       console.error('Delete clients error:', error)
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Ошибка при удалении данных',
         details: error instanceof Error ? error.message : 'Неизвестная ошибка'
       }, { status: 500 })
@@ -134,7 +121,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     console.error('Delete clients API error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
       details: error instanceof Error ? error.message : 'Неизвестная ошибка'
     }, { status: 500 })

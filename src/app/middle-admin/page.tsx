@@ -2095,10 +2095,15 @@ export default function MiddleAdminPage() {
                           <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Адрес</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Калории</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Дни доставки</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Статус</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Особенности</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Дата создания</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"></th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Статус / Авто
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Особенности
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Дата добавления
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-slate-200">
@@ -2178,16 +2183,6 @@ export default function MiddleAdminPage() {
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
                                 📅 {new Date(client.createdAt).toLocaleDateString('ru-RU')}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteClient(client.id)}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-1" />
-                                  Удалить
-                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -2470,11 +2465,54 @@ export default function MiddleAdminPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/admin/${admin.id}/password`, {
+                                headers: {
+                                  'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
+                                }
+                              })
+                              if (response.ok) {
+                                const data = await response.json()
+                                toast.info(data.password || 'Пароль скрыт. Используйте функцию сброса.')
+                              } else {
+                                toast.error('Ошибка получения пароля')
+                              }
+                            } catch (error) {
+                              toast.error('Ошибка соединения с сервером')
+                            }
+                          }}
+                        >
                           <Eye className="w-4 h-4 mr-1" />
                           Пароль
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/admin/${admin.id}/toggle-status`, {
+                                method: 'PATCH',
+                                headers: {
+                                  'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ isActive: !admin.isActive })
+                              })
+                              if (response.ok) {
+                                fetchData()
+                                toast.success(`Статус ${admin.isActive ? 'приостановлен' : 'активирован'}`)
+                              } else {
+                                toast.error('Ошибка изменения статуса')
+                              }
+                            } catch (error) {
+                              toast.error('Ошибка соединения с сервером')
+                            }
+                          }}
+                        >
                           {admin.isActive ? (
                             <Pause className="w-4 h-4 mr-1" />
                           ) : (
@@ -2482,7 +2520,32 @@ export default function MiddleAdminPage() {
                           )}
                           {admin.isActive ? "Приостановить" : "Активировать"}
                         </Button>
-                        <Button variant="destructive" size="sm">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            if (!confirm(`Вы уверены, что хотите удалить администратора ${admin.name}?`)) {
+                              return
+                            }
+                            try {
+                              const response = await fetch(`/api/admin/${admin.id}/delete`, {
+                                method: 'DELETE',
+                                headers: {
+                                  'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
+                                }
+                              })
+                              if (response.ok) {
+                                fetchData()
+                                toast.success('Администратор удален')
+                              } else {
+                                const data = await response.json()
+                                toast.error(data.error || 'Ошибка удаления администратора')
+                              }
+                            } catch (error) {
+                              toast.error('Ошибка соединения с сервером')
+                            }
+                          }}
+                        >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Удалить
                         </Button>

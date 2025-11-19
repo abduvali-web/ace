@@ -1,40 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
-// Simple mock token verification (in real app, use proper JWT verification)
-function verifyToken(token: string) {
-  try {
-    // For demo purposes, we'll accept any non-empty token as valid
-    // and return a mock user with MIDDLE_ADMIN role
-    if (token && token.length > 10) {
-      return {
-        id: '1',
-        email: 'admin@example.com',
-        name: 'Middle Admin',
-        role: 'MIDDLE_ADMIN'
-      }
-    }
-    return null
-  } catch (error) {
-    return null
-  }
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 export async function PATCH(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
 
     // Verify token and check if user is MIDDLE_ADMIN or SUPER_ADMIN
-    const user = verifyToken(token)
-    
-    if (!user) {
+    let user: any
+    try {
+      user = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
       return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -59,7 +44,7 @@ export async function PATCH(request: NextRequest) {
           where: { id: clientId },
           data: { isActive }
         })
-        
+
         if (updatedClient) {
           updatedCount++
           console.log(`✅ Updated client ${updatedClient.name} status to ${isActive ? 'active' : 'inactive'}`)
@@ -82,7 +67,7 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: `Статус ${isActive ? 'возобновлен' : 'приостановлен'} для ${updatedCount} клиентов`,
       updatedCount
     })
