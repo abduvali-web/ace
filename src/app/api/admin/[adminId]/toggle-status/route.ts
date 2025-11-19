@@ -10,7 +10,7 @@ function verifyToken(request: NextRequest) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null
   }
-  
+
   const token = authHeader.substring(7)
   try {
     return jwt.verify(token, JWT_SECRET) as any
@@ -25,7 +25,7 @@ export async function PATCH(
 ) {
   try {
     const user = verifyToken(request)
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MIDDLE_ADMIN')) {
       return NextResponse.json(
         { error: 'Доступ запрещен' },
         { status: 403 }
@@ -35,15 +35,31 @@ export async function PATCH(
     const { adminId } = params
     const { isActive } = await request.json()
 
-    // Check if admin exists and is middle admin
+    // Check if admin exists
     const admin = await db.admin.findUnique({
       where: { id: adminId }
     })
 
-    if (!admin || admin.role !== 'MIDDLE_ADMIN') {
+    if (!admin) {
       return NextResponse.json(
         { error: 'Администратор не найден' },
         { status: 404 }
+      )
+    }
+
+    // Middle admins can only manage LOW_ADMIN and COURIER
+    if (user.role === 'MIDDLE_ADMIN' && admin.role !== 'LOW_ADMIN' && admin.role !== 'COURIER') {
+      return NextResponse.json(
+        { error: 'Недостаточно прав для управления этим администратором' },
+        { status: 403 }
+      )
+    }
+
+    // Super admins can only manage MIDDLE_ADMIN (for this route)
+    if (user.role === 'SUPER_ADMIN' && admin.role !== 'MIDDLE_ADMIN') {
+      return NextResponse.json(
+        { error: 'Используйте соответствующий API для этого типа администратора' },
+        { status: 400 }
       )
     }
 
