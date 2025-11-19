@@ -57,6 +57,7 @@ import { HistoryTable } from '@/components/admin/HistoryTable'
 import { InterfaceSettings } from '@/components/admin/InterfaceSettings'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { UserGuide } from '@/components/UserGuide'
 
 interface Admin {
   id: string
@@ -1188,8 +1189,7 @@ export default function MiddleAdminPage() {
               <h1 className="text-xl font-semibold text-slate-900">{t.admin.dashboard}</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <LanguageSwitcher />
-              <div className="text-sm text-slate-600 hidden md:block">
+              <div className="text-sm text-muted-foreground hidden md:block">
                 {new Date().toLocaleDateString('ru-RU', {
                   weekday: 'long',
                   year: 'numeric',
@@ -1197,6 +1197,39 @@ export default function MiddleAdminPage() {
                   day: 'numeric'
                 })}
               </div>
+              <LanguageSwitcher />
+              <UserGuide guides={[
+                {
+                  title: "Создание заказа",
+                  description: "Нажмите кнопку '+ Создать заказ' чтобы добавить новый заказ. Заполните информацию о клиенте, адрес доставки, количество еды и время доставки. Система автоматически назначит курьера.",
+                  buttonName: "+ Создать заказ",
+                  icon: <Plus className="w-5 h-5 text-primary" />
+                },
+                {
+                  title: "Создание клиента",
+                  description: "Используйте кнопку '+ Добавить клиента' для добавления нового клиента в базу. Укажите имя, адрес, телефон и количество калорий для автоматических заказов.",
+                  buttonName: "+ Добавить клиента",
+                  icon: <User className="w-5 h-5 text-primary" />
+                },
+                {
+                  title: "Автоматические заказы",
+                  description: "Включите переключатель 'Автозаказы' в карточке клиента. Система будет автоматически создавать заказы в указанное время для этого клиента каждый день.",
+                  buttonName: "Переключатель Автозаказы",
+                  icon: <Route className="w-5 h-5 text-primary" />
+                },
+                {
+                  title: "Удаление в корзину",
+                  description: "Клиенты не удаляются навсегда сразу. Они перемещаются в корзину, откуда их можно восстановить в течение 30 дней или удалить окончательно.",
+                  buttonName: "Кнопка Корзина",
+                  icon: <Trash2 className="w-5 h-5 text-primary" />
+                },
+                {
+                  title: "История изменений",
+                  description: "Вкладка 'История' показывает все действия администраторов: создание, изменение и удаление заказов и клиентов с указанием времени и пользователя.",
+                  buttonName: "Вкладка История",
+                  icon: <History className="w-5 h-5 text-primary" />
+                }
+              ]} />
               <Button variant="outline" size="sm" onClick={() => toast.info('Профиль администратора', { description: 'Функционал редактирования профиля в разработке' })}>
                 <User className="w-4 h-4 mr-2" />
                 Профиль

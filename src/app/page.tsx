@@ -178,6 +178,133 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* Detailed Features Section */}
+            <section className="py-24 relative overflow-hidden">
+                <div className="absolute inset-0 bg-mesh-gradient opacity-30"></div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="text-center mb-16">
+                        <Badge className="mb-4 px-4 py-1.5 text-sm">Funksiyalar</Badge>
+                        <h2 className="text-3xl md:text-5xl font-bold mb-4">Avtomatlashtirish Imkoniyatlari</h2>
+                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                            AutoFood tizimi biznesingizni maksimal samaradorlikka olib chiqadi
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                        >
+                            <div className="space-y-6">
+                                <h3 className="text-3xl font-bold text-gradient">Avtomatik Buyurtmalar</h3>
+                                <p className="text-lg text-muted-foreground leading-relaxed">
+                                    Doimiy mijozlaringiz uchun avtomatik buyurtmalar yarating. Tizim har kuni, hafta yoki oy sari avtomatik ravishda buyurtmalarni yaratadi va kuryerlarga yuboradi.
+                                </p>
+                                <ul className="space-y-4">
+                                    {[
+                                        "Vaqt bo'yicha avtomatik yaratish",
+                                        "Mijoz ma'lumotlari saqlash",
+                                        "Buyurtma tarixini kuzatish",
+                                        "Eslatmalar va bildirishnomalar"
+                                    ].map((item, i) => (
+                                        <li key={i} className="flex items-center gap-3">
+                                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                                <Check className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-base">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="relative"
+                        >
+                            <div className="glass-intense rounded-2xl p-8 hover-lift">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl">
+                                        <span className="font-medium">Har kuni soat 12:00</span>
+                                        <Badge className="bg-green-500">Faol</Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                                        <span className="font-medium">Haftada 3 marta</span>
+                                        <Badge variant="secondary">Rejalashtrilgan</Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                                        <span className="font-medium">Oylik obuna</span>
+                                        <Badge variant="secondary">Rejalashtrilgan</Badge>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="order-2 md:order-1 relative"
+                        >
+                            <div className="glass-intense rounded-2xl p-8 hover-lift">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                            <span className="text-2xl font-bold text-blue-500">247</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Buyurtmalar</p>
+                                            <p className="text-xs text-green-500">+12% haftalik</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                            <span className="text-2xl font-bold text-purple-500">45</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Kuryerlar</p>
+                                            <p className="text-xs text-green-500">Faol</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="order-1 md:order-2"
+                        >
+                            <div className="space-y-6">
+                                <h3 className="text-3xl font-bold text-gradient-purple">Real Vaqtda Kuzatish</h3>
+                                <p className="text-lg text-muted-foreground leading-relaxed">
+                                    Barcha buyurtmalar va kuryerlaringizni bir joydan kuzating. Statistika, hisobotlar va real vaqt ma'lumotlari.
+                                </p>
+                                <ul className="space-y-4">
+                                    {[
+                                        "Kuryerlar lokatsiyasini ko'rish",
+                                        "Buyurtma statusini kuzatish",
+                                        "Detallı hisobotlar",
+                                        "Daromad statistikasi"
+                                    ].map((item, i) => (
+                                        <li key={i} className="flex items-center gap-3">
+                                            <div className="w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0">
+                                                <Check className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-base">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
             {/* Pricing Section */}
             <section className="py-24 relative">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
