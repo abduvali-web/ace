@@ -83,40 +83,53 @@
 }
 
 .dark {
-  --background: oklch(0.10 0.02 255.112);
-  /* Deep rich navy/black */
-  --foreground: oklch(0.98 0.01 255.112);
-  --card: oklch(0.14 0.03 255.112);
-  /* Slightly lighter than bg */
-  --card-foreground: oklch(0.98 0.01 255.112);
-  --popover: oklch(0.14 0.03 255.112);
-  --popover-foreground: oklch(0.98 0.01 255.112);
-  --primary: oklch(0.60 0.18 265.112);
-  /* Lighter Indigo for dark mode */
-  --primary-foreground: oklch(0.10 0.02 255.112);
-  --secondary: oklch(0.20 0.04 255.112);
-  --secondary-foreground: oklch(0.98 0.01 255.112);
-  --muted: oklch(0.20 0.04 255.112);
-  --muted-foreground: oklch(0.65 0.04 255.112);
-  --accent: oklch(0.20 0.04 255.112);
-  --accent-foreground: oklch(0.98 0.01 255.112);
-  --destructive: oklch(0.65 0.22 25.32);
-  --border: oklch(0.20 0.04 255.112);
-  --input: oklch(0.20 0.04 255.112);
-  --ring: oklch(0.60 0.18 265.112);
-  --chart-1: oklch(0.60 0.18 265.112);
-  --chart-2: oklch(0.65 0.15 200.112);
-  --chart-3: oklch(0.70 0.12 150.112);
-  --chart-4: oklch(0.75 0.10 100.112);
-  --chart-5: oklch(0.80 0.08 50.112);
-  --sidebar: oklch(0.12 0.03 255.112);
-  --sidebar-foreground: oklch(0.98 0.01 255.112);
-  --sidebar-primary: oklch(0.60 0.18 265.112);
-  --sidebar-primary-foreground: oklch(0.10 0.02 255.112);
-  --sidebar-accent: oklch(0.20 0.04 255.112);
-  --sidebar-accent-foreground: oklch(0.98 0.01 255.112);
-  --sidebar-border: oklch(0.20 0.04 255.112);
-  --sidebar-ring: oklch(0.60 0.18 265.112);
+  --background: oklch(0.15 0.015 265);
+  /* Softer deep slate with subtle blue undertone */
+  --foreground: oklch(0.95 0.01 265);
+  /* Bright, clean white with slight warmth */
+  --card: oklch(0.18 0.02 265);
+  /* Elevated card surface */
+  --card-foreground: oklch(0.95 0.01 265);
+  --popover: oklch(0.17 0.02 265);
+  --popover-foreground: oklch(0.95 0.01 265);
+  --primary: oklch(0.65 0.20 265);
+  /* Vibrant, saturated indigo/purple */
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.22 0.03 265);
+  /* Subtle elevation */
+  --secondary-foreground: oklch(0.90 0.02 265);
+  --muted: oklch(0.22 0.03 265);
+  --muted-foreground: oklch(0.60 0.05 265);
+  /* More readable muted text */
+  --accent: oklch(0.25 0.04 280);
+  /* Slightly different hue for variety */
+  --accent-foreground: oklch(0.95 0.01 265);
+  --destructive: oklch(0.60 0.24 25);
+  /* Warmer, more saturated red */
+  --border: oklch(0.25 0.03 265);
+  /* Subtle, visible borders */
+  --input: oklch(0.20 0.03 265);
+  /* Distinct input background */
+  --ring: oklch(0.65 0.20 265);
+  --chart-1: oklch(0.65 0.20 265);
+  /* Vibrant indigo */
+  --chart-2: oklch(0.60 0.18 200);
+  /* Cyan */
+  --chart-3: oklch(0.65 0.20 160);
+  /* Emerald */
+  --chart-4: oklch(0.70 0.18 80);
+  /* Amber */
+  --chart-5: oklch(0.65 0.22 30);
+  /* Coral */
+  --sidebar: oklch(0.13 0.02 265);
+  /* Slightly darker than background */
+  --sidebar-foreground: oklch(0.90 0.02 265);
+  --sidebar-primary: oklch(0.65 0.20 265);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.22 0.03 265);
+  --sidebar-accent-foreground: oklch(0.90 0.02 265);
+  --sidebar-border: oklch(0.20 0.03 265);
+  --sidebar-ring: oklch(0.65 0.20 265);
 }
 
 @layer base {
