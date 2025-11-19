@@ -107,59 +107,76 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Не все обязательные поля заполнены' }, { status: 400 })
     }
 
-    const now = new Date().toISOString()
-
-    // Create new client
-    const newClient = {
-      id: Date.now().toString(),
-      name,
-      phone,
-      address,
-      calories: parseInt(calories),
-      specialFeatures: specialFeatures || '',
-      deliveryDays: deliveryDays || {
-        monday: false,
-        tuesday: false,
-        wednesday: false,
-        thursday: false,
-        friday: false,
-        saturday: false,
-        sunday: false
-      },
-      autoOrdersEnabled: autoOrdersEnabled !== undefined ? autoOrdersEnabled : true,
-      isActive: isActive !== undefined ? isActive : true,
-      createdAt: now,
-      lastAutoOrderCheck: now
-    }
-
-    // Add client to global server storage (this will also create auto orders)
-    const scheduler = (global as any).autoOrderScheduler
-    if (scheduler) {
-      await scheduler.addClient(newClient)
-
-      // Get updated orders list
-      const orders = scheduler.getOrders()
-
-      // Find orders by customer name and phone (more reliable)
-      const autoOrders = orders.filter(order =>
-        (order.customerName === newClient.name || order.customer?.name === newClient.name) &&
-        (order.customerPhone === newClient.phone || order.customer?.phone === newClient.phone)
-      )
-
-      return NextResponse.json({
-        message: 'Клиент успешно создан',
-        client: newClient,
-        autoOrdersCreated: autoOrders.length,
-        autoOrders: autoOrders
+    // Save client to database first
+    try {
+      const dbClient = await db.customer.create({
+        data: {
+          name,
+          phone,
+          address,
+          preferences: specialFeatures || '',
+          isActive: isActive !== undefined ? isActive : true
+        }
       })
-    } else {
-      // Fallback if scheduler not available
+
+      // Create client object for scheduler with additional fields
+      const newClient = {
+        id: dbClient.id,
+        name: dbClient.name,
+        phone: dbClient.phone,
+        address: dbClient.address,
+        calories: parseInt(calories),
+        specialFeatures: specialFeatures || '',
+        deliveryDays: deliveryDays || {
+          monday: false,
+          tuesday: false,
+          wednesday: false,
+          thursday: false,
+          friday: false,
+          saturday: false,
+          sunday: false
+        },
+        autoOrdersEnabled: autoOrdersEnabled !== undefined ? autoOrdersEnabled : true,
+        isActive: dbClient.isActive,
+        createdAt: dbClient.createdAt.toISOString(),
+        lastAutoOrderCheck: dbClient.createdAt.toISOString()
+      }
+
+      // Add client to global server storage (this will also create auto orders)
+      const scheduler = (global as any).autoOrderScheduler
+      if (scheduler) {
+        await scheduler.addClient(newClient)
+
+        // Get updated orders list
+        const orders = scheduler.getOrders()
+
+        // Find orders by customer name and phone (more reliable)
+        const autoOrders = orders.filter(order =>
+          (order.customerName === newClient.name || order.customer?.name === newClient.name) &&
+          (order.customerPhone === newClient.phone || order.customer?.phone === newClient.phone)
+        )
+
+        return NextResponse.json({
+          message: 'Клиент успешно создан',
+          client: newClient,
+          autoOrdersCreated: autoOrders.length,
+          autoOrders: autoOrders
+        })
+      } else {
+        // Fallback if scheduler not available
+        return NextResponse.json({
+          message: 'Клиент успешно создан',
+          client: newClient,
+          autoOrdersCreated: 0,
+          autoOrders: []
+        })
+      }
+    } catch (dbError: any) {
+      console.error('Database error creating client:', dbError)
       return NextResponse.json({
-        message: 'Клиент успешно создан',
-        client: newClient,
-        autoOrdersCreated: 0,
-        autoOrders: []
-      })
+        error: 'Ошибка сохранения клиента в базу данных',
+        details: dbError.message
+      }, { status: 500 })
     }
 
   } catch (error) {
