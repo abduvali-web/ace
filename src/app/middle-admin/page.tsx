@@ -1894,28 +1894,56 @@ export default function MiddleAdminPage() {
                                 placeholder="https://maps.google.com/..."
                                 value={clientFormData.googleMapsLink || ''}
                                 onChange={(e) => {
-                                  const link = e.target.value;
+                                  const input = e.target.value;
                                   let lat: number | null = null;
                                   let lng: number | null = null;
 
-                                  // Try to extract coordinates from link
-                                  // Format: @41.311081,69.240562
-                                  const atMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                  // Try to find a URL in the input first
+                                  const urlMatch = input.match(/(https?:\/\/[^\s]+)/);
+                                  const textToParse = urlMatch ? urlMatch[0] : input;
+
+                                  // 1. Format: @41.311081,69.240562
+                                  const atMatch = textToParse.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
                                   if (atMatch) {
                                     lat = parseFloat(atMatch[1]);
                                     lng = parseFloat(atMatch[2]);
-                                  } else {
-                                    // Format: q=41.311081,69.240562
-                                    const qMatch = link.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                  }
+                                  // 2. Format: q=41.311081,69.240562
+                                  else {
+                                    const qMatch = textToParse.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
                                     if (qMatch) {
                                       lat = parseFloat(qMatch[1]);
                                       lng = parseFloat(qMatch[2]);
+                                    }
+                                    // 3. Format: !3d41.311081!4d69.240562
+                                    else {
+                                      const pbMatch = textToParse.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                                      if (pbMatch) {
+                                        lat = parseFloat(pbMatch[1]);
+                                        lng = parseFloat(pbMatch[2]);
+                                      }
+                                      // 4. Format: ll=41.311081,69.240562
+                                      else {
+                                        const llMatch = textToParse.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                        if (llMatch) {
+                                          lat = parseFloat(llMatch[1]);
+                                          lng = parseFloat(llMatch[2]);
+                                        }
+                                        // 5. Format: search/41.311081,69.240562
+                                        else {
+                                          const searchMatch = textToParse.match(/search\/(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                          if (searchMatch) {
+                                            lat = parseFloat(searchMatch[1]);
+                                            lng = parseFloat(searchMatch[2]);
+                                          }
+                                        }
+                                      }
                                     }
                                   }
 
                                   setClientFormData(prev => ({
                                     ...prev,
-                                    googleMapsLink: link,
+                                    googleMapsLink: input,
                                     latitude: lat,
                                     longitude: lng
                                   }));
