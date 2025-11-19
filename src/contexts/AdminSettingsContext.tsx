@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS: AdminSettings = {
     compactMode: false,
     showStats: true,
     enableAnimations: true,
-    theme: 'system'
+    theme: 'light'
 }
 
 interface AdminSettingsContextType {

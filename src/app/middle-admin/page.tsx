@@ -187,7 +187,10 @@ export default function MiddleAdminPage() {
       sunday: false
     },
     autoOrdersEnabled: true,
-    isActive: true
+    isActive: true,
+    googleMapsLink: '',
+    latitude: null as number | null,
+    longitude: null as number | null
   })
   const [orderFormData, setOrderFormData] = useState({
     customerName: '',
@@ -760,7 +763,10 @@ export default function MiddleAdminPage() {
             sunday: false
           },
           autoOrdersEnabled: true,
-          isActive: true
+          isActive: true,
+          googleMapsLink: '',
+          latitude: null,
+          longitude: null
         })
 
         // Show success message with auto orders info
@@ -1893,6 +1899,44 @@ export default function MiddleAdminPage() {
                                 onChange={(e) => setClientFormData(prev => ({ ...prev, address: e.target.value }))}
                                 className="col-span-3"
                                 required
+                              />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-2">
+                              <Label htmlFor="googleMapsLink" className="text-right">
+                                Ссылка на карту
+                              </Label>
+                              <Input
+                                id="googleMapsLink"
+                                placeholder="https://maps.google.com/..."
+                                value={clientFormData.googleMapsLink || ''}
+                                onChange={(e) => {
+                                  const link = e.target.value;
+                                  let lat: number | null = null;
+                                  let lng: number | null = null;
+
+                                  // Try to extract coordinates from link
+                                  // Format: @41.311081,69.240562
+                                  const atMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                  if (atMatch) {
+                                    lat = parseFloat(atMatch[1]);
+                                    lng = parseFloat(atMatch[2]);
+                                  } else {
+                                    // Format: q=41.311081,69.240562
+                                    const qMatch = link.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                    if (qMatch) {
+                                      lat = parseFloat(qMatch[1]);
+                                      lng = parseFloat(qMatch[2]);
+                                    }
+                                  }
+
+                                  setClientFormData(prev => ({
+                                    ...prev,
+                                    googleMapsLink: link,
+                                    latitude: lat,
+                                    longitude: lng
+                                  }));
+                                }}
+                                className="col-span-3"
                               />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-2">

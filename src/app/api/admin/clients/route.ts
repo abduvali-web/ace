@@ -54,7 +54,9 @@ export async function GET(request: NextRequest) {
           autoOrdersEnabled: globalClient?.autoOrdersEnabled !== false,
           isActive: dbClient.isActive,
           createdAt: dbClient.createdAt.toISOString(),
-          lastAutoOrderCheck: globalClient?.lastAutoOrderCheck || dbClient.createdAt.toISOString()
+          lastAutoOrderCheck: globalClient?.lastAutoOrderCheck || dbClient.createdAt.toISOString(),
+          latitude: dbClient.latitude,
+          longitude: dbClient.longitude
         }
       })
 
@@ -100,7 +102,9 @@ export async function POST(request: NextRequest) {
       specialFeatures,
       deliveryDays,
       autoOrdersEnabled,
-      isActive
+      isActive,
+      latitude,
+      longitude
     } = body
 
     if (!name || !phone || !address || !calories) {
@@ -115,7 +119,9 @@ export async function POST(request: NextRequest) {
           phone,
           address,
           preferences: specialFeatures || '',
-          isActive: isActive !== undefined ? isActive : true
+          isActive: isActive !== undefined ? isActive : true,
+          latitude,
+          longitude
         }
       })
 
