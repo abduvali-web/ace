@@ -84,7 +84,7 @@ export default function LandingPage() {
                             </Badge>
                         </motion.div>
 
-                        <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+                        <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 text-gradient">
                             Biznesingizni <br />
                             <span className="text-primary">Avtomatlashtiring</span>
                         </motion.h1>
@@ -140,7 +140,7 @@ export default function LandingPage() {
                                 viewport={{ once: true }}
                                 transition={{ delay: i * 0.1 }}
                             >
-                                <Card className="h-full border-none shadow-lg bg-background/50 backdrop-blur-sm hover:bg-background transition-colors">
+                                <Card className="h-full glass-card border-none shadow-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
                                     <CardHeader>
                                         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary">
                                             <feature.icon className="w-6 h-6" />
@@ -170,7 +170,7 @@ export default function LandingPage() {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                         >
-                            <Card className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-xl">
+                            <Card className="h-full glass-card border-none hover:border-primary/50 transition-all duration-300 shadow-xl">
                                 <CardHeader className="text-center pb-2">
                                     <CardTitle className="text-2xl font-medium text-muted-foreground">1 Oy</CardTitle>
                                     <div className="flex items-baseline justify-center mt-4">
@@ -212,7 +212,7 @@ export default function LandingPage() {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                         >
-                            <Card className="h-full border-2 border-primary shadow-2xl relative overflow-hidden bg-primary/5">
+                            <Card className="h-full glass-card border-2 border-primary shadow-2xl relative overflow-hidden bg-primary/5">
                                 <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg">
                                     ENG MASHHUR
                                 </div>

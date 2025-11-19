@@ -138,7 +138,11 @@
   }
 
   .glass-card {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-300;
+    @apply !bg-white/80 backdrop-blur-sm border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+
+  :is(.dark .glass-card) {
+    @apply !bg-slate-900/80 border-slate-700/50;
   }
 
   .text-gradient {

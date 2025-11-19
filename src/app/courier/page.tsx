@@ -375,7 +375,7 @@ export default function CourierPage() {
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
               <Package className="w-5 h-5" />
             </div>
-            <h1 className="font-bold text-lg text-slate-900">{t.courier.title}</h1>
+            <h1 className="font-bold text-lg text-gradient">{t.courier.title}</h1>
           </div>
           <div className="flex items-center space-x-2">
             <LanguageSwitcher />
@@ -396,9 +396,19 @@ export default function CourierPage() {
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="active">{t.courier.orders} ({orders.length})</TabsTrigger>
-            <TabsTrigger value="history">{t.courier.history} ({historyOrders.length})</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
+            <TabsTrigger
+              value="active"
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
+              {t.courier.orders} ({orders.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
+              {t.courier.history} ({historyOrders.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="space-y-6">
@@ -412,7 +422,7 @@ export default function CourierPage() {
                   className="space-y-6"
                 >
                   {/* Active Order Card */}
-                  <Card className="overflow-hidden border-0 shadow-lg ring-1 ring-slate-200/50">
+                  <Card className="glass-card border-none overflow-hidden shadow-lg ring-1 ring-slate-200/50">
                     <div className={`h-2 w-full ${isOrderPaused ? 'bg-yellow-500' :
                       isOrderOpen ? 'bg-blue-500' :
                         'bg-green-500'
@@ -631,7 +641,7 @@ export default function CourierPage() {
             <div className="space-y-4">
               {historyOrders.length > 0 ? (
                 historyOrders.map((order) => (
-                  <Card key={order.id} className="border-0 shadow-sm">
+                  <Card key={order.id} className="glass-card border-none shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div>

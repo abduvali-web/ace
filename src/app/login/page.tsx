@@ -135,114 +135,111 @@ export default function Home() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background -z-10"></div>
-
-        {/* Right Side - Login Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
-          <div className="absolute top-8 right-8">
-            <LanguageSwitcher />
-          </div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-md"
-          >
-            <Card className="border-none shadow-2xl bg-white/50 backdrop-blur-sm">
-              <CardHeader className="space-y-1 text-center pb-8">
-                <CardTitle className="text-3xl font-bold tracking-tight">{t.auth.loginTitle}</CardTitle>
-                <CardDescription className="text-base">
-                  {t.auth.loginSubtitle}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t.auth.email}</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="admin@autofood.uz"
-                        className="pl-10 h-11 bg-white/50"
-                        value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">{t.auth.password}</Label>
-                      <a href="#" className="text-sm font-medium text-primary hover:underline">
-                        {t.auth.forgotPassword}
-                      </a>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type="password"
-                        className="pl-10 h-11 bg-white/50"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full h-11 text-base font-medium shadow-lg shadow-primary/25 transition-all hover:scale-[1.02]"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {t.common.loading}
-                      </>
-                    ) : (
-                      <>
-                        {t.auth.signIn}
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-muted" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Демо доступ
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="p-3 rounded-lg bg-muted/50 border border-muted text-xs space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-foreground">Супер Админ:</span>
-                      <span className="font-mono text-muted-foreground">super@admin.com</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-foreground">Пароль:</span>
-                      <span className="font-mono text-muted-foreground">admin123</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="justify-center border-t border-muted/50 pt-6">
-                <p className="text-xs text-center text-muted-foreground">
-                  Защищено reCAPTCHA и применяются
-                  <a href="#" className="underline hover:text-primary ml-1">{t.auth.privacyPolicy}</a> и
-                  <a href="#" className="underline hover:text-primary ml-1">{t.auth.termsOfUse}</a>
-                </p>
-              </CardFooter>
-            </Card>
-          </motion.div>
+        <div className="absolute top-8 right-8">
+          <LanguageSwitcher />
         </div>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <Card className="glass-card border-none shadow-2xl">
+            <CardHeader className="space-y-1 text-center pb-8">
+              <CardTitle className="text-3xl font-bold tracking-tight">{t.auth.loginTitle}</CardTitle>
+              <CardDescription className="text-base">
+                {t.auth.loginSubtitle}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">{t.auth.email}</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="admin@autofood.uz"
+                      className="pl-10 h-11 bg-white/50"
+                      value={loginData.email}
+                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">{t.auth.password}</Label>
+                    <a href="#" className="text-sm font-medium text-primary hover:underline">
+                      {t.auth.forgotPassword}
+                    </a>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      className="pl-10 h-11 bg-white/50"
+                      value={loginData.password}
+                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-medium shadow-lg shadow-primary/25 transition-all hover:scale-[1.02]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      {t.common.loading}
+                    </>
+                  ) : (
+                    <>
+                      {t.auth.signIn}
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              </form>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-muted" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Демо доступ
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <div className="p-3 rounded-lg bg-muted/50 border border-muted text-xs space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-foreground">Супер Админ:</span>
+                    <span className="font-mono text-muted-foreground">super@admin.com</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-foreground">Пароль:</span>
+                    <span className="font-mono text-muted-foreground">admin123</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="justify-center border-t border-muted/50 pt-6">
+              <p className="text-xs text-center text-muted-foreground">
+                Защищено reCAPTCHA и применяются
+                <a href="#" className="underline hover:text-primary ml-1">{t.auth.privacyPolicy}</a> и
+                <a href="#" className="underline hover:text-primary ml-1">{t.auth.termsOfUse}</a>
+              </p>
+            </CardFooter>
+          </Card>
+        </motion.div>
       </div>
     </div>
+
   )
 }
