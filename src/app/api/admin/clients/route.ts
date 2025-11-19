@@ -23,9 +23,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
-    // Get clients from database with isActive status
+    // Get clients from database with isActive status, excluding deleted ones
     try {
       const dbClients = await db.customer.findMany({
+        where: {
+          deletedAt: null
+        },
         orderBy: { createdAt: 'desc' }
       })
 

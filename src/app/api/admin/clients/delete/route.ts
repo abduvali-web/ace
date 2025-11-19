@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Проверяем авторизацию
+    // Check authorization
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
 
     if (!token) {
@@ -25,96 +25,84 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { clientIds, deleteOrders = true, daysBack = 30 } = body
+    const { clientIds } = body
 
     if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
       return NextResponse.json({ error: 'Не указаны ID клиентов для удаления' }, { status: 400 })
     }
 
-    let deletedClients = 0
+    let movedTobin = 0
     let deletedOrders = 0
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
     try {
-      // Сначала удаляем из базы данных
+      // Process each client
       for (const clientId of clientIds) {
         try {
-          // Удаляем заказы клиента из базы данных
-          if (deleteOrders) {
-            const deletedOrdersResult = await db.order.deleteMany({
-              where: { customerId: clientId }
-            })
-            deletedOrders += deletedOrdersResult.count
-            console.log(`✅ Deleted ${deletedOrdersResult.count} orders for client ${clientId}`)
-          }
-
-          // Удаляем клиента из базы данных
-          const deletedClient = await db.customer.delete({
+          // Get client to check if active
+          const client = await db.customer.findUnique({
             where: { id: clientId }
           })
 
-          if (deletedClient) {
-            deletedClients++
-            console.log(`✅ Deleted client ${deletedClient.name} from database`)
+          if (!client) {
+            console.log(`⚠️ Client ${clientId} not found`)
+            continue
           }
+
+          // If client is active, delete future auto-generated orders from today onwards
+          if (client.isActive) {
+            const deletedOrdersResult = await db.order.deleteMany({
+              where: {
+                customerId: clientId,
+                isAutoOrder: true,
+                deliveryDate: {
+                  gte: today
+                }
+              }
+            })
+            deletedOrders += deletedOrdersResult.count
+            console.log(`✅ Deleted ${deletedOrdersResult.count} future auto orders for active client ${client.name}`)
+          } else {
+            // If inactive, preserve all orders
+            console.log(`ℹ️ Preserving all orders for inactive client ${client.name}`)
+          }
+
+          // Soft delete the client (set deletedAt timestamp)
+          await db.customer.update({
+            where: { id: clientId },
+            data: {
+              deletedAt: new Date(),
+              deletedBy: user.id
+            }
+          })
+
+          movedTobin++
+          console.log(`✅ Moved client ${client.name} to bin`)
+
+          // Remove from global scheduler if it exists
+          const scheduler = (global as any).autoOrderScheduler
+          if (scheduler) {
+            scheduler.removeClient(clientId)
+            console.log(`✅ Removed client ${client.name} from global scheduler`)
+          }
+
         } catch (dbError) {
-          console.error(`❌ Error deleting client ${clientId} from database:`, dbError)
+          console.error(`❌ Error processing client ${clientId}:`, dbError)
         }
-      }
-
-      // Также удаляем из глобального storage если доступен
-      const scheduler = (global as any).autoOrderScheduler
-
-      if (scheduler) {
-        // Получаем текущие клиенты и заказы
-        const currentClients = scheduler.getClients()
-        const currentOrders = scheduler.getOrders()
-
-        // Фильтруем клиентов для удаления
-        const clientsToDelete = currentClients.filter((client: any) => clientIds.includes(client.id))
-
-        // Удаляем заказы для этих клиентов из глобального хранилища
-        if (deleteOrders) {
-          const startDate = new Date()
-          startDate.setDate(startDate.getDate() - daysBack)
-          startDate.setHours(0, 0, 0, 0)
-
-          const endDate = new Date()
-          endDate.setDate(endDate.getDate() + 30)
-          endDate.setHours(23, 59, 59, 999)
-
-          const filteredOrders = currentOrders.filter((order: any) => {
-            const orderDate = new Date(order.createdAt)
-            const isClientOrder = clientsToDelete.some((client: any) =>
-              order.customerName === client.name && order.customerPhone === client.phone
-            )
-            return isClientOrder && orderDate >= startDate && orderDate <= endDate
-          })
-
-          // Удаляем заказы из scheduler
-          filteredOrders.forEach((order: any) => {
-            scheduler.removeOrder(order.id)
-          })
-          // Note: deletedOrders already counted from database deletion
-        }
-
-        // Удаляем клиентов из scheduler
-        clientsToDelete.forEach((client: any) => {
-          scheduler.removeClient(client.id)
-          console.log(`✅ Removed client ${client.name} from global storage`)
-        })
       }
 
       return NextResponse.json({
         success: true,
-        deletedClients,
+        movedTobin,
         deletedOrders,
-        message: `Успешно удалено ${deletedClients} клиентов и ${deletedOrders} заказов`
+        message: `Успешно перемещено в корзину: ${movedTobin} клиентов. Удалено будущих авто-заказов: ${deletedOrders}`
       })
 
     } catch (error) {
       console.error('Delete clients error:', error)
       return NextResponse.json({
-        error: 'Ошибка при удалении данных',
+        error: 'Ошибка при перемещении в корзину',
         details: error instanceof Error ? error.message : 'Неизвестная ошибка'
       }, { status: 500 })
     }

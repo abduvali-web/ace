@@ -1,10 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
-// This function should be the same as the one in server.ts but adapted for API route
-// We need to duplicate the logic or extract it to a shared library.
-// Since server.ts is not part of the build, we should move the logic to a shared file.
-// For now, I will inline a simplified version here to ensure it works on Vercel.
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 function getDayOfWeek(date: Date): string {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -17,18 +15,28 @@ function generateDeliveryTime(): string {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 }
 
-export async function GET(req: Request) {
+export async function POST(request: NextRequest) {
     try {
-        // Verify cron secret if needed (Vercel handles this automatically for configured crons)
-        // const authHeader = req.headers.get('authorization');
-        // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        //   return new Response('Unauthorized', { status: 401 });
-        // }
+        const token = request.headers.get('authorization')?.replace('Bearer ', '')
 
-        console.log('🤖 Auto Order Scheduler started via Cron')
+        if (!token) {
+            return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
+        }
+
+        let user: any
+        try {
+            user = jwt.verify(token, JWT_SECRET)
+        } catch (error) {
+            return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
+        }
+
+        if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+            return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+        }
+
+        console.log('🚀 Manual Auto Order Creation triggered by', user.email)
 
         const today = new Date()
-        const startDate = new Date(today)
         const endDate = new Date(today)
         endDate.setDate(endDate.getDate() + 30) // Generate for next 30 days
 
@@ -48,15 +56,10 @@ export async function GET(req: Request) {
         })
 
         if (!defaultAdmin) {
-            return NextResponse.json({ error: 'No default admin found' }, { status: 500 })
+            return NextResponse.json({ error: 'Администратор по умолчанию не найден' }, { status: 500 })
         }
 
         for (const client of customers) {
-            // Parse delivery days or use default
-            // Assuming client.deliveryDays is stored as JSON or we use a default pattern
-            // Ideally we should fetch this from the DB if it was part of the schema
-            // For now, we'll assume daily delivery if not specified
-
             const startDate = new Date(today)
             const endDate = new Date(today)
             endDate.setDate(endDate.getDate() + 30)
@@ -89,16 +92,16 @@ export async function GET(req: Request) {
                             customerId: client.id,
                             adminId: defaultAdmin.id,
                             deliveryAddress: client.address,
-                            deliveryDate: new Date(d), // Use the loop date
+                            deliveryDate: new Date(d),
                             deliveryTime: generateDeliveryTime(),
                             quantity: 1,
-                            calories: 2000, // Default or from client
+                            calories: 2000, // Default or from client preferences
                             specialFeatures: client.preferences,
                             paymentStatus: 'UNPAID',
                             paymentMethod: 'CASH',
                             isPrepaid: false,
                             orderStatus: 'PENDING',
-                            isAutoOrder: true,
+                            isAutoOrder: true // Mark as auto-generated
                         }
                     })
                     totalOrdersCreated++
@@ -108,10 +111,15 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             success: true,
-            message: `Scheduler completed. Created ${totalOrdersCreated} orders.`
+            ordersCreated: totalOrdersCreated,
+            message: `Создано ${totalOrdersCreated} автоматических заказов`
         })
+
     } catch (error) {
-        console.error('Scheduler error:', error)
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+        console.error('Run auto orders error:', error)
+        return NextResponse.json({
+            error: 'Ошибка при создании автоматических заказов',
+            details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+        }, { status: 500 })
     }
 }

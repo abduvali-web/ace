@@ -112,6 +112,17 @@ interface Client {
   createdAt: string
 }
 
+interface BinClient {
+  id: string
+  name: string
+  phone: string
+  address: string
+  isActive: boolean
+  deletedAt: string
+  deletedBy?: string
+  createdAt: string
+}
+
 interface Stats {
   successfulOrders: number
   failedOrders: number
@@ -242,6 +253,8 @@ export default function MiddleAdminPage() {
     manualOrders: false
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [binClients, setBinClients] = useState<BinClient[]>([])
+  const [selectedBinClients, setSelectedBinClients] = useState<Set<string>>(new Set())
 
   // Add effect to reset selected clients when filter changes
   useEffect(() => {
@@ -325,6 +338,18 @@ export default function MiddleAdminPage() {
       if (statsResponse.ok) {
         const statsData = await statsResponse.json()
         setStats(statsData)
+      }
+
+      // Fetch bin clients
+      const binResponse = await fetch('/api/admin/clients/bin', {
+        headers: {
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
+        }
+      })
+
+      if (binResponse.ok) {
+        const binData = await binResponse.json()
+        setBinClients(binData)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -931,6 +956,136 @@ export default function MiddleAdminPage() {
     }
   }
 
+  const handleRestoreSelectedClients = async () => {
+    if (selectedBinClients.size === 0) {
+      toast.error('Пожалуйста, выберите клиентов для восстановления')
+      return
+    }
+
+    const selectedClientsList = Array.from(selectedBinClients).map(id =>
+      binClients.find(c => c.id === id)?.name || 'Неизвестный клиент'
+    ).join(', ')
+
+    const hasActiveClients = binClients.some(c => selectedBinClients.has(c.id) && c.isActive)
+    const confirmMessage = `Вы уверены, что хотите восстановить следующих клиентов:\n\n${selectedClientsList}\n\n${hasActiveClients ? 'Автоматические заказы будут созданы для активных клиентов.' : ''}`
+
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/clients/restore', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientIds: Array.from(selectedBinClients)
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success(data.message || `Успешно восстановлено: ${data.restoredClients} клиентов`)
+        setSelectedBinClients(new Set())
+        fetchData()
+      } else {
+        const data = await response.json()
+        toast.error(`Ошибка: ${data.error || 'Ошибка восстановления клиентов'}`)
+      }
+    } catch (error) {
+      console.error('Restore clients error:', error)
+      toast.error('Ошибка соединения с сервером')
+    }
+  }
+
+  const handlePermanentDeleteSelected = async () => {
+    if (selectedBinClients.size === 0) {
+      toast.error('Пожалуйста, выберите клиентов для окончательного удаления')
+      return
+    }
+
+    const selectedClientsList = Array.from(selectedBinClients).map(id =>
+      binClients.find(c => c.id === id)?.name || 'Неизвестный клиент'
+    ).join(', ')
+
+    const confirmMessage = `⚠️ ВНИМАНИЕ! Вы уверены, что хотите НАВСЕГДА удалить следующих клиентов:\n\n${selectedClientsList}\n\nВсе данные и заказы этих клиентов будут удалены безвозвратно.\n\nЭто действие НЕЛЬЗЯ отменить!`
+
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    const doubleConfirm = confirm('Подтвердите еще раз: вы действительно хотите удалить навсегда?')
+    if (!doubleConfirm) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/clients/permanent-delete', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientIds: Array.from(selectedBinClients)
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success(data.message || `Успешно удалено навсегда: ${data.deletedClients} клиентов`)
+        setSelectedBinClients(new Set())
+        fetchData()
+      } else {
+        const data = await response.json()
+        toast.error(`Ошибка: ${data.error || 'Ошибка удаления клиентов'}`)
+      }
+    } catch (error) {
+      console.error('Permanent delete error:', error)
+      toast.error('Ошибка соединения с сервером')
+    }
+  }
+
+  const handleRunAutoOrders = async () => {
+    try {
+      toast.info('Запуск создания автоматических заказов...')
+
+      const response = await fetch('/api/admin/clients/run-auto-orders', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success(data.message || `Создано ${data.ordersCreated} автоматических заказов`)
+        fetchData()
+      } else {
+        const data = await response.json()
+        toast.error(`Ошибка: ${data.error || 'Ошибка создания заказов'}`)
+      }
+    } catch (error) {
+      console.error('Run auto orders error:', error)
+      toast.error('Ошибка соединения с сервером')
+    }
+  }
+
+  const handleToggleBinClientSelection = (clientId: string) => {
+    setSelectedBinClients(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(clientId)) {
+        newSet.delete(clientId)
+      } else {
+        newSet.add(clientId)
+      }
+      return newSet
+    })
+  }
+
   const handleDeliveryDayChange = (day: string, checked: boolean) => {
     setClientFormData(prev => ({
       ...prev,
@@ -1068,6 +1223,9 @@ export default function MiddleAdminPage() {
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Клиенты
+            </TabsTrigger>
+            <TabsTrigger value="bin" className="flex items-center gap-2">
+              🗑️ Корзина {binClients.length > 0 && `(${binClients.length})`}
             </TabsTrigger>
             <TabsTrigger value="admins" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -1833,6 +1991,18 @@ export default function MiddleAdminPage() {
                         <SelectItem value="inactive">Только приостановленные</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveTab('bin')}
+                    >
+                      🗑️ Корзина
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleRunAutoOrders}
+                    >
+                      🤖 Создать авто-заказы
+                    </Button>
                     <Dialog open={isCreateClientModalOpen} onOpenChange={setIsCreateClientModalOpen}>
                       <DialogTrigger asChild>
                         <Button>
@@ -2389,6 +2559,128 @@ export default function MiddleAdminPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog >
+
+          {/* Bin Tab */}
+          <TabsContent value="bin" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>🗑️ Корзина</CardTitle>
+                    <CardDescription>
+                      Удаленные клиенты. Вы можете восстановить или удалить их навсегда.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Bin Management Buttons */}
+                {selectedBinClients.size > 0 && (
+                  <div className="mb-4 p-3 bg-slate-50 border rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">
+                        Выбрано клиентов: {selectedBinClients.size}
+                      </span>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRestoreSelectedClients}
+                          className="text-green-600 border-green-200 hover:bg-green-50"
+                        >
+                          ↩️ Восстановить выбранных
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handlePermanentDeleteSelected}
+                        >
+                          ⚠️ Удалить навсегда
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bin Clients Table */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-12">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedBinClients(new Set(binClients.map(c => c.id)))
+                                } else {
+                                  setSelectedBinClients(new Set())
+                                }
+                              }}
+                              checked={selectedBinClients.size === binClients.length && binClients.length > 0}
+                            />
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Имя</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Телефон</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Адрес</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Статус при удалении</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Удалено</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-200">
+                        {binClients.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                              Корзина пуста
+                            </td>
+                          </tr>
+                        ) : (
+                          binClients.map((client) => (
+                            <tr key={client.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-slate-300"
+                                  checked={selectedBinClients.has(client.id)}
+                                  onChange={() => handleToggleBinClientSelection(client.id)}
+                                />
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">
+                                {client.name}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
+                                {client.phone}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
+                                {client.address}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                <Badge
+                                  variant={client.isActive ? "default" : "secondary"}
+                                  className={
+                                    client.isActive
+                                      ? "bg-green-100 text-green-800 border-green-200"
+                                      : "bg-red-100 text-red-800 border-red-200"
+                                  }
+                                >
+                                  {client.isActive ? 'Активен' : 'Неактивен'}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-500">
+                                {new Date(client.deletedAt).toLocaleString('ru-RU')}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Admins Tab */}
           < TabsContent value="admins" className="space-y-6" >
