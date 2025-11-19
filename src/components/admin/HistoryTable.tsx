@@ -81,7 +81,7 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
     }
 
     return (
-        <Card>
+        <Card className="glass-card border-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div className="space-y-1">
                     <CardTitle>История действий</CardTitle>
@@ -94,7 +94,7 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
                 </Button>
             </CardHeader>
             <CardContent>
-                <div className="rounded-md border">
+                <div className="hidden md:block rounded-md border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -142,6 +142,45 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
                             )}
                         </TableBody>
                     </Table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="md:hidden space-y-4">
+                    {isLoading && logs.length === 0 ? (
+                        <div className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                        </div>
+                    ) : logs.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                            История пуста
+                        </div>
+                    ) : (
+                        logs.map((log) => (
+                            <Card key={log.id} className="glass-card border-none overflow-hidden">
+                                <CardHeader className="pb-2 bg-muted/30">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-sm">{log.admin.name}</span>
+                                            <span className="text-xs text-muted-foreground">{log.admin.role}</span>
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">
+                                            {format(new Date(log.createdAt), 'dd MMM HH:mm', { locale: ru })}
+                                        </span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-2">
+                                    <div>
+                                        <Badge variant="secondary" className={getActionBadgeColor(log.action)}>
+                                            {log.action}
+                                        </Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {log.description}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
                 </div>
 
                 <div className="flex items-center justify-end space-x-2 py-4">

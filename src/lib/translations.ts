@@ -63,6 +63,7 @@ export const translations = {
             create: 'Создать',
             edit: 'Редактировать',
             delete: 'Удалить',
+            settings: 'Настройки',
 
             compactMode: 'Компактный режим',
             compactModeDesc: 'Уменьшает отступы в таблицах',
@@ -141,6 +142,7 @@ export const translations = {
             create: 'Yaratish',
             edit: 'Tahrirlash',
             delete: 'O\'chirish',
+            settings: 'Sozlamalar',
 
             compactMode: 'Ixcham rejim',
             compactModeDesc: 'Jadvallardagi bo\'shliqlarni kamaytirish',
@@ -219,6 +221,7 @@ export const translations = {
             create: 'Create',
             edit: 'Edit',
             delete: 'Delete',
+            settings: 'Settings',
 
             compactMode: 'Compact Mode',
             compactModeDesc: 'Reduce padding in tables',

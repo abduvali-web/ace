@@ -327,7 +327,7 @@ export default function SuperAdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-slate-900">{t.admin.dashboard}</h1>
+              <h1 className="text-xl font-bold tracking-tight text-gradient">{t.admin.dashboard}</h1>
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSwitcher />
@@ -401,20 +401,32 @@ export default function SuperAdminPage() {
           transition={{ duration: 0.5 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="admins" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-2 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
+              <TabsTrigger
+                value="admins"
+                className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+              >
                 <Users className="w-4 h-4" />
                 {t.admin.admins}
               </TabsTrigger>
-              <TabsTrigger value="interface" className="flex items-center gap-2">
+              <TabsTrigger
+                value="interface"
+                className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+              >
                 <Settings className="w-4 h-4" />
                 {t.admin.interface}
               </TabsTrigger>
-              <TabsTrigger value="statistics" className="flex items-center gap-2">
+              <TabsTrigger
+                value="statistics"
+                className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+              >
                 <BarChart3 className="w-4 h-4" />
                 {t.admin.statistics}
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2">
+              <TabsTrigger
+                value="history"
+                className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+              >
                 <History className="w-4 h-4" />
                 {t.admin.history}
               </TabsTrigger>
@@ -422,7 +434,7 @@ export default function SuperAdminPage() {
 
             {/* Admins Tab */}
             <TabsContent value="admins" className="space-y-6">
-              <Card>
+              <Card className="glass-card border-none">
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <div>
@@ -532,7 +544,7 @@ export default function SuperAdminPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {middleAdmins.map((admin) => (
-                      <div key={admin.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={admin.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg gap-4">
                         <div className="flex items-center space-x-4">
                           <Avatar>
                             <AvatarFallback>{admin.name.charAt(0)}</AvatarFallback>
@@ -545,11 +557,12 @@ export default function SuperAdminPage() {
                             </Badge>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => viewPassword(admin.id)}
+                            className="flex-1 md:flex-none"
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             Пароль
@@ -558,6 +571,7 @@ export default function SuperAdminPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => toggleAdminStatus(admin.id, admin.isActive)}
+                            className="flex-1 md:flex-none"
                           >
                             {admin.isActive ? (
                               <Pause className="w-4 h-4 mr-1" />
@@ -591,7 +605,7 @@ export default function SuperAdminPage() {
             <TabsContent value="statistics" className="space-y-6">
               {/* Order Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Успешные заказы</CardTitle>
                   </CardHeader>
@@ -603,7 +617,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Неудачные заказы</CardTitle>
                   </CardHeader>
@@ -615,7 +629,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">В доставке</CardTitle>
                   </CardHeader>
@@ -627,7 +641,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Ожидают</CardTitle>
                   </CardHeader>
@@ -642,7 +656,7 @@ export default function SuperAdminPage() {
 
               {/* Payment Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Предоплаченные</CardTitle>
                   </CardHeader>
@@ -654,7 +668,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Неоплаченные</CardTitle>
                   </CardHeader>
@@ -666,7 +680,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Оплата картой</CardTitle>
                   </CardHeader>
@@ -678,7 +692,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Оплата наличными</CardTitle>
                   </CardHeader>
@@ -693,7 +707,7 @@ export default function SuperAdminPage() {
 
               {/* Customer Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Ежедневные клиенты</CardTitle>
                   </CardHeader>
@@ -705,7 +719,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Четные дни</CardTitle>
                   </CardHeader>
@@ -717,7 +731,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Нечетные дни</CardTitle>
                   </CardHeader>
@@ -729,7 +743,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Особые предпочтения</CardTitle>
                   </CardHeader>
@@ -744,7 +758,7 @@ export default function SuperAdminPage() {
 
               {/* Calories Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">1200 ккал</CardTitle>
                   </CardHeader>
@@ -756,7 +770,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">1600 ккал</CardTitle>
                   </CardHeader>
@@ -768,7 +782,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">2000 ккал</CardTitle>
                   </CardHeader>
@@ -780,7 +794,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">2500 ккал</CardTitle>
                   </CardHeader>
@@ -792,7 +806,7 @@ export default function SuperAdminPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-none">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">3000 ккал</CardTitle>
                   </CardHeader>

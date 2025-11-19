@@ -17,7 +17,11 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  Settings
+  Settings,
+  MapPin,
+  Phone,
+  Calendar,
+  Clock
 } from 'lucide-react'
 import { HistoryTable } from '@/components/admin/HistoryTable'
 import { InterfaceSettings } from '@/components/admin/InterfaceSettings'
@@ -188,7 +192,7 @@ export default function LowAdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-slate-900">Панель Низкого Администратора</h1>
+              <h1 className="text-xl font-bold tracking-tight text-gradient">Панель Низкого Администратора</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="sm">
@@ -207,20 +211,32 @@ export default function LowAdminPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="statistics" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-2 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
+            <TabsTrigger
+              value="statistics"
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <BarChart3 className="w-4 h-4" />
               Статистика
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
+            <TabsTrigger
+              value="orders"
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <Package className="w-4 h-4" />
               Заказы
             </TabsTrigger>
-            <TabsTrigger value="interface" className="flex items-center gap-2">
+            <TabsTrigger
+              value="interface"
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <Settings className="w-4 h-4" />
               Интерфейс
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
+            <TabsTrigger
+              value="history"
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <History className="w-4 h-4" />
               История
             </TabsTrigger>
@@ -231,7 +247,7 @@ export default function LowAdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {stats && (
                 <>
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, successful: true, failed: false }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, successful: true, failed: false }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -244,7 +260,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, successful: false, failed: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, successful: false, failed: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -257,7 +273,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, prepaid: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, prepaid: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Предоплаченные</CardTitle>
                     </CardHeader>
@@ -267,7 +283,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, unpaid: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, unpaid: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Неоплаченные</CardTitle>
                     </CardHeader>
@@ -277,7 +293,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, card: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, card: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Оплата картой</CardTitle>
                     </CardHeader>
@@ -287,7 +303,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, cash: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, cash: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Оплата наличными</CardTitle>
                     </CardHeader>
@@ -297,7 +313,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, daily: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, daily: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Ежедневные клиенты</CardTitle>
                     </CardHeader>
@@ -307,7 +323,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, evenDay: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, evenDay: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Четные дни</CardTitle>
                     </CardHeader>
@@ -317,7 +333,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, oddDay: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, oddDay: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Нечетные дни</CardTitle>
                     </CardHeader>
@@ -327,7 +343,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, special: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, special: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Особые предпочтения</CardTitle>
                     </CardHeader>
@@ -337,7 +353,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories1200: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories1200: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">1200 калорий</CardTitle>
                     </CardHeader>
@@ -347,7 +363,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories1600: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories1600: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">1600 калорий</CardTitle>
                     </CardHeader>
@@ -357,7 +373,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories2000: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories2000: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">2000 калорий</CardTitle>
                     </CardHeader>
@@ -367,7 +383,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories2500: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories2500: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">2500 калорий</CardTitle>
                     </CardHeader>
@@ -377,7 +393,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories3000: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, calories3000: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">3000 калорий</CardTitle>
                     </CardHeader>
@@ -387,7 +403,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, singleItem: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, singleItem: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">1 блюдо в заказе</CardTitle>
                     </CardHeader>
@@ -397,7 +413,7 @@ export default function LowAdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, multiItem: true }) }}>
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, multiItem: true }) }}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">2+ блюда в заказе</CardTitle>
                     </CardHeader>
@@ -413,7 +429,7 @@ export default function LowAdminPage() {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
-            <Card>
+            <Card className="glass-card border-none">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -505,7 +521,8 @@ export default function LowAdminPage() {
 
                 {/* Orders Table */}
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="max-h-96 overflow-y-auto">
+                  {/* Desktop View */}
+                  <div className="hidden md:block max-h-96 overflow-y-auto">
                     <table className="w-full">
                       <thead className="bg-slate-50 sticky top-0">
                         <tr>
@@ -561,6 +578,71 @@ export default function LowAdminPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile View */}
+                  <div className="md:hidden space-y-4 p-4">
+                    {orders.map((order) => (
+                      <Card key={order.id} className="glass-card border-none">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg">
+                                Заказ #{order.orderNumber}
+                              </CardTitle>
+                              <CardDescription className="flex items-center mt-1">
+                                <User className="w-3 h-3 mr-1" />
+                                {order.customer.name}
+                              </CardDescription>
+                            </div>
+                            <Badge variant={
+                              order.orderStatus === 'DELIVERED' ? 'default' :
+                                order.orderStatus === 'PENDING' ? 'secondary' :
+                                  order.orderStatus === 'IN_DELIVERY' ? 'outline' : 'destructive'
+                            }>
+                              {getStatusText(order.orderStatus)}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="text-sm space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center text-muted-foreground">
+                              <Clock className="w-4 h-4 mr-2" />
+                              {order.deliveryTime}
+                            </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <Package className="w-4 h-4 mr-2" />
+                              {order.quantity} шт ({order.calories} ккал)
+                            </div>
+                          </div>
+
+                          <div className="flex items-start text-muted-foreground">
+                            <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
+                            <span className="break-words">{order.deliveryAddress}</span>
+                          </div>
+
+                          <div className="flex items-center text-muted-foreground">
+                            <Phone className="w-4 h-4 mr-2" />
+                            {order.customer.phone}
+                          </div>
+
+                          {order.specialFeatures && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-md text-xs text-yellow-800 dark:text-yellow-200">
+                              ⚠️ {order.specialFeatures}
+                            </div>
+                          )}
+
+                          <div className="pt-2 flex justify-end gap-2">
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              В закладки
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </div>
 

@@ -9,7 +9,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Trash2, Eye, Edit } from 'lucide-react'
+import { Trash2, Eye, Edit, Calendar, MapPin, Phone, User } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Order {
     id: string
@@ -58,7 +59,8 @@ export function OrdersTable({
                 )}
             </div>
 
-            <div className="rounded-md border">
+            {/* Desktop View */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -130,6 +132,76 @@ export function OrdersTable({
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+                {orders.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                        Нет заказов
+                    </div>
+                ) : (
+                    orders.map((order) => (
+                        <Card key={order.id} className="overflow-hidden">
+                            <CardHeader className="pb-2 bg-muted/30">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            checked={selectedOrders.has(order.id)}
+                                            onCheckedChange={() => onSelectOrder(order.id)}
+                                        />
+                                        <CardTitle className="text-base">
+                                            Заказ #{order.orderNumber}
+                                        </CardTitle>
+                                    </div>
+                                    <Badge variant={
+                                        order.orderStatus === 'DELIVERED' ? 'default' :
+                                            order.orderStatus === 'PENDING' ? 'secondary' :
+                                                order.orderStatus === 'IN_DELIVERY' ? 'outline' : 'destructive'
+                                    }>
+                                        {order.orderStatus}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-4 space-y-3">
+                                <div className="flex items-start gap-3">
+                                    <User className="w-4 h-4 mt-1 text-muted-foreground" />
+                                    <div>
+                                        <div className="font-medium">{order.customer.name}</div>
+                                        <div className="text-sm text-muted-foreground">{order.customer.phone}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                    <MapPin className="w-4 h-4 mt-1 text-muted-foreground" />
+                                    <div className="text-sm">{order.deliveryAddress}</div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                                    <div className="text-sm">
+                                        {order.deliveryTime}
+                                        {order.deliveryDate && ` • ${order.deliveryDate}`}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center pt-2 border-t mt-2">
+                                    <Badge variant={order.paymentStatus === 'PAID' ? 'default' : 'destructive'}>
+                                        {order.paymentStatus === 'PAID' ? 'Оплачено' : 'Не оплачено'}
+                                    </Badge>
+                                    <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Eye className="w-4 h-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Edit className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
             </div>
         </div>
     )
