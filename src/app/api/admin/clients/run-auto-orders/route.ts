@@ -64,8 +64,34 @@ export async function POST(request: NextRequest) {
             const endDate = new Date(today)
             endDate.setDate(endDate.getDate() + 30)
 
+            // Parse delivery days from orderPattern
+            let deliveryDays = {
+                monday: true,
+                tuesday: true,
+                wednesday: true,
+                thursday: true,
+                friday: true,
+                saturday: true,
+                sunday: true
+            }
+
+            if (client.orderPattern) {
+                try {
+                    deliveryDays = JSON.parse(client.orderPattern)
+                } catch (e) {
+                    console.error('Error parsing orderPattern for client', client.id, e)
+                }
+            }
+
             // Iterate through each day in the next 30 days
             for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dayName = getDayOfWeek(d)
+
+                // Skip if delivery is not enabled for this day
+                if (!deliveryDays[dayName as keyof typeof deliveryDays]) {
+                    continue
+                }
+
                 const deliveryDate = new Date(d)
 
                 // Check if order already exists for this client and date

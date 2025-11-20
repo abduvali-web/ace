@@ -11,7 +11,7 @@ function verifyRequestToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null
   const token = authHeader.substring(7)
-  try { return jwt.verify(token, JWT_SECRET) as any } catch { return null }
+  try { return jwt.verify(token, JWT_SECRET as string) as any } catch { return null }
 }
 
 export async function DELETE(
@@ -36,6 +36,65 @@ export async function DELETE(
     return NextResponse.json({ message: 'Клиент успешно удален', client })
   } catch (error) {
     console.error('Error deleting client:', error)
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = verifyRequestToken(request)
+    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
+    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+    }
+
+    const clientId = params.id
+    const body = await request.json()
+    const {
+      name,
+      phone,
+      address,
+      calories,
+      specialFeatures,
+      deliveryDays,
+      autoOrdersEnabled,
+      isActive
+    } = body
+
+    // Prepare update data
+    const updateData: any = {}
+    if (name) updateData.name = name
+    if (phone) updateData.phone = phone
+    if (address) updateData.address = address
+    if (specialFeatures !== undefined) updateData.preferences = specialFeatures
+    if (isActive !== undefined) updateData.isActive = isActive
+
+    if (deliveryDays) {
+      updateData.orderPattern = JSON.stringify(deliveryDays)
+    }
+
+    const updatedClient = await db.customer.update({
+      where: { id: clientId },
+      data: updateData
+    })
+
+    // Also update global scheduler if available
+    const scheduler = (global as any).autoOrderScheduler
+    if (scheduler) {
+      // We might need to implement updateClient in scheduler, or just remove and add
+      // For now, we rely on the DB for the next run
+    }
+
+    return NextResponse.json({
+      message: 'Клиент успешно обновлен',
+      client: updatedClient
+    })
+
+  } catch (error) {
+    console.error('Error updating client:', error)
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
   }
 }

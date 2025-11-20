@@ -1290,61 +1290,263 @@ export default function MiddleAdminPage() {
               value="statistics"
               className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
             >
+              <BarChart3 className="w-4 h-4 mr-2" />
               Статистика
             </TabsTrigger>
             <TabsTrigger
               value="history"
               className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
             >
+              <History className="w-4 h-4 mr-2" />
               История
             </TabsTrigger>
           </TabsList>
 
           {/* Statistics Tab */}
           <TabsContent value="statistics" className="space-y-6">
-            <Card className="glass-card border-none">
-              {stats && <StatsCards stats={stats} />}
+            {/* Order Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Успешные заказы</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats?.successfulOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Доставлено</p>
+                </CardContent>
+              </Card>
 
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4">
-                  <CardHeader>
-                    <CardTitle>Обзор заказов</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pl-2">
-                    {/* Chart component would go here */}
-                    <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                      График заказов
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="col-span-3">
-                  <CardHeader>
-                    <CardTitle>Последние заказы</CardTitle>
-                    <CardDescription>
-                      Всего {orders.length} заказов сегодня
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-8">
-                      {orders.slice(0, 5).map(order => (
-                        <div key={order.id} className="flex items-center">
-                          <div className="ml-4 space-y-1">
-                            <p className="text-sm font-medium leading-none">{order.customer.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {order.deliveryAddress}
-                            </p>
-                          </div>
-                          <div className="ml-auto font-medium">
-                            {order.paymentStatus === 'PAID' ? '+' : ''}{order.quantity * 25000} сум
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </Card>
-          </TabsContent >
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Неудачные заказы</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {stats?.failedOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Отменено</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">В доставке</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {stats?.inDeliveryOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">В процессе</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Ожидают</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {stats?.pendingOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">В очереди</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Payment Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Предоплаченные</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats?.prepaidOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Оплачено</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Неоплаченные</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {stats?.unpaidOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Оплата при получении</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Оплата картой</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {stats?.cardOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Онлайн оплата</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Оплата наличными</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats?.cashOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">При получении</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Customer Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Ежедневные клиенты</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {stats?.dailyCustomers || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Каждый день</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Четные дни</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-indigo-600">
+                    {stats?.evenDayCustomers || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">По четным дням</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Нечетные дни</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-pink-600">
+                    {stats?.oddDayCustomers || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">По нечетным дням</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Особые предпочтения</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {stats?.specialPreferenceCustomers || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">С особенностями</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Calories Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">1200 ккал</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {stats?.orders1200 || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Низкокалорийные</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">1600 ккал</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {stats?.orders1600 || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Стандарт</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">2000 ккал</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {stats?.orders2000 || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Средние</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">2500 ккал</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats?.orders2500 || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Высокие</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">3000 ккал</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {stats?.orders3000 || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Очень высокие</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quantity Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Одинарные заказы</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {stats?.singleItemOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Один рацион</p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Множественные заказы</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {stats?.multiItemOrders || 0}
+                  </div>
+                  <p className="text-xs text-slate-500">Два и более рационов</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Orders Tab */}
           < TabsContent value="orders" className="space-y-4" >

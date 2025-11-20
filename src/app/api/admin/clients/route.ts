@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           address: dbClient.address,
           calories: globalClient?.calories || 2000,
           specialFeatures: dbClient.preferences || '',
-          deliveryDays: globalClient?.deliveryDays || {
+          deliveryDays: dbClient.orderPattern ? JSON.parse(dbClient.orderPattern) : (globalClient?.deliveryDays || {
             monday: false,
             tuesday: false,
             wednesday: false,
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
             friday: false,
             saturday: false,
             sunday: false
-          },
+          }),
           autoOrdersEnabled: globalClient?.autoOrdersEnabled !== false,
           isActive: dbClient.isActive,
           createdAt: dbClient.createdAt.toISOString(),
@@ -122,6 +122,15 @@ export async function POST(request: NextRequest) {
           phone,
           address,
           preferences: specialFeatures || '',
+          orderPattern: JSON.stringify(deliveryDays || {
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+            sunday: false
+          }),
           isActive: isActive !== undefined ? isActive : true,
           latitude,
           longitude
