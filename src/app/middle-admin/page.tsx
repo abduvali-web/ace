@@ -467,52 +467,104 @@ export default function MiddleAdminPage() {
     }
   }
 
-  const parseGoogleMapsUrl = (url: string) => {
-    // Проверяем, является ли это Google Maps ссылка
-    if (!url.includes('maps.google.com') && !url.includes('google.com/maps')) {
-      return url // Возвращаем как есть, если это не Google Maps ссылка
+  const parseGoogleMapsUrl = async (url: string): Promise<string | null> => {
+    if (!url) return null
+
+    let finalUrl = url
+
+    // Handle short links
+    if (url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
+      try {
+        const response = await fetch(`/api/admin/expand-url?url=${encodeURIComponent(url)}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.expandedUrl) {
+            finalUrl = data.expandedUrl
+          }
+        }
+      } catch (error) {
+        console.error('Error expanding URL:', error)
+      }
     }
 
     try {
-      const urlObj = new URL(url)
-      const searchParams = urlObj.searchParams
-
-      // Извлекаем координаты из параметра q
-      const qParam = searchParams.get('q')
-      if (qParam && qParam.includes(',')) {
-        const coords = qParam.split(',')
-        const lat = parseFloat(coords[0].trim())
-        const lng = parseFloat(coords[1].trim())
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          return `${lat}, ${lng}`
-        }
+      // 1. Format: @41.311081,69.240562
+      const atMatch = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+      if (atMatch) {
+        return `${atMatch[1]}, ${atMatch[2]}`
       }
 
-      // Извлекаем координаты из параметра ll
-      const llParam = searchParams.get('ll')
-      if (llParam && llParam.includes(',')) {
-        const coords = llParam.split(',')
-        const lat = parseFloat(coords[0].trim())
-        const lng = parseFloat(coords[1].trim())
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          return `${lat}, ${lng}`
-        }
+      // 2. Format: q=41.311081,69.240562
+      const qMatch = finalUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)
+      if (qMatch) {
+        return `${qMatch[1]}, ${qMatch[2]}`
       }
 
-      // Если в URL есть координаты после @
-      const hashMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
-      if (hashMatch) {
-        return `${hashMatch[1]}, ${hashMatch[2]}`
+      // 3. Format: !3d41.311081!4d69.240562
+      const pbMatch = finalUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)
+      if (pbMatch) {
+        return `${pbMatch[1]}, ${pbMatch[2]}`
       }
 
-      return url // Возвращаем оригинальный URL, если не удалось извлечь координаты
+      // 4. Format: ll=41.311081,69.240562
+      const llMatch = finalUrl.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/)
+      if (llMatch) {
+        return `${llMatch[1]}, ${llMatch[2]}`
+      }
+
+      // 5. Format: search/41.311081,69.240562
+      const searchMatch = finalUrl.match(/search\/(-?\d+\.\d+),(-?\d+\.\d+)/)
+      if (searchMatch) {
+        return `${searchMatch[1]}, ${searchMatch[2]}`
+      }
+
+      return null
     } catch (error) {
       console.error('Error parsing Google Maps URL:', error)
-      return url
+      return null
     }
   }
+
+  const handleAddressChange = async (value: string) => {
+    setOrderFormData(prev => ({ ...prev, deliveryAddress: value }))
+
+    // Парсим координаты в реальном времени
+    const parsed = await parseGoogleMapsUrl(value)
+    if (parsed && parsed.includes(',')) {
+      const coords = parsed.split(',')
+      const lat = parseFloat(coords[0].trim())
+      const lng = parseFloat(coords[1].trim())
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setParsedCoords({ lat, lng })
+      } else {
+        setParsedCoords(null)
+      }
+    } else {
+      setParsedCoords(null)
+    }
+  }
+
+  const handleClientAddressChange = async (value: string) => {
+    setClientFormData(prev => ({ ...prev, googleMapsLink: value }))
+
+    const parsed = await parseGoogleMapsUrl(value)
+    if (parsed && parsed.includes(',')) {
+      const coords = parsed.split(',')
+      const lat = parseFloat(coords[0].trim())
+      const lng = parseFloat(coords[1].trim())
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setClientFormData(prev => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng
+        }))
+      }
+    }
+  }
+
+
 
   const handleDeleteSelectedClients = async () => {
     if (selectedClients.size === 0) {
@@ -574,20 +626,21 @@ export default function MiddleAdminPage() {
         }))
 
         // Также парсим координаты из адреса клиента
-        const parsed = parseGoogleMapsUrl(selectedClient.address)
-        if (parsed.includes(',')) {
-          const coords = parsed.split(',')
-          const lat = parseFloat(coords[0].trim())
-          const lng = parseFloat(coords[1].trim())
+        parseGoogleMapsUrl(selectedClient.address).then(parsed => {
+          if (parsed && parsed.includes(',')) {
+            const coords = parsed.split(',')
+            const lat = parseFloat(coords[0].trim())
+            const lng = parseFloat(coords[1].trim())
 
-          if (!isNaN(lat) && !isNaN(lng)) {
-            setParsedCoords({ lat, lng })
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setParsedCoords({ lat, lng })
+            } else {
+              setParsedCoords(null)
+            }
           } else {
             setParsedCoords(null)
           }
-        } else {
-          setParsedCoords(null)
-        }
+        })
       }
     } else {
       // Если клиент не выбран или выбран ручной ввод, очищаем поля но оставляем значения по умолчанию
@@ -604,25 +657,7 @@ export default function MiddleAdminPage() {
     }
   }
 
-  const handleAddressChange = (value: string) => {
-    setOrderFormData(prev => ({ ...prev, deliveryAddress: value }))
 
-    // Парсим координаты в реальном времени
-    const parsed = parseGoogleMapsUrl(value)
-    if (parsed.includes(',')) {
-      const coords = parsed.split(',')
-      const lat = parseFloat(coords[0].trim())
-      const lng = parseFloat(coords[1].trim())
-
-      if (!isNaN(lat) && !isNaN(lng)) {
-        setParsedCoords({ lat, lng })
-      } else {
-        setParsedCoords(null)
-      }
-    } else {
-      setParsedCoords(null)
-    }
-  }
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -631,13 +666,13 @@ export default function MiddleAdminPage() {
 
     try {
       // Парсим адрес для извлечения координат из Google Maps ссылки
-      const parsedAddress = parseGoogleMapsUrl(orderFormData.deliveryAddress)
+      const parsedAddress = await parseGoogleMapsUrl(orderFormData.deliveryAddress)
 
       // Извлекаем координаты, если они есть в адресе
       let latitude: number | null = null
       let longitude: number | null = null
 
-      if (parsedAddress.includes(',')) {
+      if (parsedAddress && parsedAddress.includes(',')) {
         const coords = parsedAddress.split(',')
         const lat = parseFloat(coords[0].trim())
         const lng = parseFloat(coords[1].trim())
@@ -1503,7 +1538,7 @@ export default function MiddleAdminPage() {
                   <div className="text-2xl font-bold text-green-600">
                     {stats?.orders2500 || 0}
                   </div>
-                  <p className="text-xs text-slate-500">Высокие</p>
+                  <p className="text-xs text-slate-500">Сытные</p>
                 </CardContent>
               </Card>
 
@@ -1515,22 +1550,22 @@ export default function MiddleAdminPage() {
                   <div className="text-2xl font-bold text-blue-600">
                     {stats?.orders3000 || 0}
                   </div>
-                  <p className="text-xs text-slate-500">Очень высокие</p>
+                  <p className="text-xs text-slate-500">Максимальные</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Quantity Statistics */}
+            {/* Item Count Statistics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="glass-card border-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Одинарные заказы</CardTitle>
+                  <CardTitle className="text-base">Одиночные заказы</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-indigo-600">
                     {stats?.singleItemOrders || 0}
                   </div>
-                  <p className="text-xs text-slate-500">Один рацион</p>
+                  <p className="text-xs text-slate-500">1 порция</p>
                 </CardContent>
               </Card>
 
@@ -1547,6 +1582,8 @@ export default function MiddleAdminPage() {
               </Card>
             </div>
           </TabsContent>
+
+
 
           {/* Orders Tab */}
           < TabsContent value="orders" className="space-y-4" >
@@ -2334,65 +2371,12 @@ export default function MiddleAdminPage() {
                               <Label htmlFor="googleMapsLink" className="text-right">
                                 Ссылка на карту
                               </Label>
+
                               <Input
                                 id="googleMapsLink"
                                 placeholder="https://maps.google.com/..."
                                 value={clientFormData.googleMapsLink || ''}
-                                onChange={(e) => {
-                                  const input = e.target.value;
-                                  let lat: number | null = null;
-                                  let lng: number | null = null;
-
-                                  // Try to find a URL in the input first
-                                  const urlMatch = input.match(/(https?:\/\/[^\s]+)/);
-                                  const textToParse = urlMatch ? urlMatch[0] : input;
-
-                                  // 1. Format: @41.311081,69.240562
-                                  const atMatch = textToParse.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                                  if (atMatch) {
-                                    lat = parseFloat(atMatch[1]);
-                                    lng = parseFloat(atMatch[2]);
-                                  }
-                                  // 2. Format: q=41.311081,69.240562
-                                  else {
-                                    const qMatch = textToParse.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-                                    if (qMatch) {
-                                      lat = parseFloat(qMatch[1]);
-                                      lng = parseFloat(qMatch[2]);
-                                    }
-                                    // 3. Format: !3d41.311081!4d69.240562
-                                    else {
-                                      const pbMatch = textToParse.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-                                      if (pbMatch) {
-                                        lat = parseFloat(pbMatch[1]);
-                                        lng = parseFloat(pbMatch[2]);
-                                      }
-                                      // 4. Format: ll=41.311081,69.240562
-                                      else {
-                                        const llMatch = textToParse.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
-                                        if (llMatch) {
-                                          lat = parseFloat(llMatch[1]);
-                                          lng = parseFloat(llMatch[2]);
-                                        }
-                                        // 5. Format: search/41.311081,69.240562
-                                        else {
-                                          const searchMatch = textToParse.match(/search\/(-?\d+\.\d+),(-?\d+\.\d+)/);
-                                          if (searchMatch) {
-                                            lat = parseFloat(searchMatch[1]);
-                                            lng = parseFloat(searchMatch[2]);
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-
-                                  setClientFormData(prev => ({
-                                    ...prev,
-                                    googleMapsLink: input,
-                                    latitude: lat,
-                                    longitude: lng
-                                  }));
-                                }}
+                                onChange={(e) => handleClientAddressChange(e.target.value)}
                                 className="col-span-3"
                               />
                             </div>
@@ -2908,7 +2892,7 @@ export default function MiddleAdminPage() {
           </Dialog >
 
           {/* Bin Tab */}
-          <TabsContent value="bin" className="space-y-6">
+          < TabsContent value="bin" className="space-y-6" >
             <Card className="glass-card border-none">
               <CardHeader>
                 <div className="flex justify-between items-center">
@@ -3075,7 +3059,7 @@ export default function MiddleAdminPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent >
 
           {/* Admins Tab */}
           < TabsContent value="admins" className="space-y-6" >
@@ -3426,15 +3410,15 @@ export default function MiddleAdminPage() {
           </TabsContent >
 
           {/* Interface Tab */}
-          <TabsContent value="interface" className="space-y-6">
+          < TabsContent value="interface" className="space-y-6" >
             <InterfaceSettings />
-          </TabsContent>
+          </TabsContent >
 
           {/* History Tab */}
-          <TabsContent value="history" className="space-y-6">
+          < TabsContent value="history" className="space-y-6" >
             <HistoryTable role="MIDDLE_ADMIN" />
-          </TabsContent>
-        </Tabs>
+          </TabsContent >
+        </Tabs >
       </main >
     </div >
   )
