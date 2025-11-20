@@ -191,6 +191,13 @@ export async function POST(request: NextRequest) {
       }
     } catch (dbError: any) {
       console.error('Database error creating client:', dbError)
+
+      if (dbError.code === 'P2002') {
+        return NextResponse.json({
+          error: 'Клиент с таким номером телефона уже существует'
+        }, { status: 409 })
+      }
+
       return NextResponse.json({
         error: 'Ошибка сохранения клиента в базу данных',
         details: dbError.message

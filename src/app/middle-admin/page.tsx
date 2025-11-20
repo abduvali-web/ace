@@ -548,6 +548,15 @@ export default function MiddleAdminPage() {
   const handleClientAddressChange = async (value: string) => {
     setClientFormData(prev => ({ ...prev, googleMapsLink: value }))
 
+    if (!value) {
+      setClientFormData(prev => ({
+        ...prev,
+        latitude: null,
+        longitude: null
+      }))
+      return
+    }
+
     const parsed = await parseGoogleMapsUrl(value)
     if (parsed && parsed.includes(',')) {
       const coords = parsed.split(',')
@@ -561,6 +570,15 @@ export default function MiddleAdminPage() {
           longitude: lng
         }))
       }
+    } else {
+      // Optional: Clear coordinates if link is invalid? 
+      // Or keep previous valid ones? 
+      // Let's clear them to avoid confusion if the user thinks they changed the link but the coords remained old.
+      setClientFormData(prev => ({
+        ...prev,
+        latitude: null,
+        longitude: null
+      }))
     }
   }
 
@@ -853,7 +871,10 @@ export default function MiddleAdminPage() {
         toast.success(message, { description })
         fetchData()
       } else {
-        setClientError(data.error || 'Ошибка создания клиента')
+        const errorMessage = data.error || 'Ошибка создания клиента'
+        const errorDetails = data.details ? `\n${data.details}` : ''
+        setClientError(`${errorMessage}${errorDetails}`)
+        toast.error(errorMessage, { description: data.details })
       }
     } catch (error) {
       setClientError('Ошибка соединения с сервером')
