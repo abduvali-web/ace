@@ -5,18 +5,18 @@ import jwt from 'jsonwebtoken'
 async function verifyToken(token: string) {
   try {
     if (!token) return null
-    
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
-    
+
     // Get user from database
     const user = await db.admin.findUnique({
       where: { id: decoded.id }
     })
-    
+
     if (!user || !user.isActive) {
       return null
     }
-    
+
     return {
       id: user.id,
       email: user.email,
@@ -33,7 +33,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     const user = await verifyToken(token || '')
-    
+
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MIDDLE_ADMIN')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
@@ -44,22 +44,25 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Order IDs are required' }, { status: 400 })
     }
 
-    // Delete orders from database
-    const deleteResult = await db.order.deleteMany({
+    // Soft delete orders (set deletedAt timestamp)
+    const updateResult = await db.order.updateMany({
       where: {
         id: {
           in: orderIds
         }
+      },
+      data: {
+        deletedAt: new Date()
       }
     })
 
-    const deletedCount = deleteResult.count
+    const deletedCount = updateResult.count
 
-    console.log(`Deleted ${deletedCount} orders by ${user.role} ${user.name}`)
+    console.log(`Soft deleted ${deletedCount} orders by ${user.role} ${user.name}`)
 
-    return NextResponse.json({ 
-      message: 'Orders deleted successfully',
-      deletedCount 
+    return NextResponse.json({
+      message: 'Orders moved to bin successfully',
+      deletedCount
     })
 
   } catch (error) {

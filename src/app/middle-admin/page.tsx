@@ -47,7 +47,8 @@ import {
   ChevronRight,
   Route,
   CalendarDays,
-  MapPin
+  MapPin,
+  Edit
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -112,6 +113,8 @@ interface Client {
   autoOrdersEnabled: boolean
   isActive: boolean
   createdAt: string
+  deletedAt?: string
+  deletedBy?: string
 }
 
 interface BinClient {
@@ -154,6 +157,9 @@ export default function MiddleAdminPage() {
   const [lowAdmins, setLowAdmins] = useState<Admin[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [couriers, setCouriers] = useState<Admin[]>([])
+  const [binClients, setBinClients] = useState<Client[]>([])
+  const [binOrders, setBinOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
@@ -166,6 +172,19 @@ export default function MiddleAdminPage() {
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [isCreateClientModalOpen, setIsCreateClientModalOpen] = useState(false)
+  const [isBulkEditOrdersModalOpen, setIsBulkEditOrdersModalOpen] = useState(false)
+  const [isBulkEditClientsModalOpen, setIsBulkEditClientsModalOpen] = useState(false)
+  const [bulkOrderUpdates, setBulkOrderUpdates] = useState({
+    orderStatus: '',
+    paymentStatus: '',
+    courierId: '',
+    deliveryDate: ''
+  })
+  const [bulkClientUpdates, setBulkClientUpdates] = useState({
+    isActive: undefined as boolean | undefined,
+    calories: ''
+  })
+  const [isUpdatingBulk, setIsUpdatingBulk] = useState(false)
   const [isOrderDetailsModalOpen, setIsOrderDetailsModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [createFormData, setCreateFormData] = useState({
@@ -267,7 +286,6 @@ export default function MiddleAdminPage() {
     manualOrders: false
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [binClients, setBinClients] = useState<BinClient[]>([])
   const [selectedBinClients, setSelectedBinClients] = useState<Set<string>>(new Set())
 
   // Add effect to reset selected clients when filter changes
@@ -319,39 +337,35 @@ export default function MiddleAdminPage() {
         ? `/api/orders?date=${selectedDate.toISOString().split('T')[0]}&filters=${JSON.stringify(filters)}`
         : `/api/orders?filters=${JSON.stringify(filters)}`
 
-      const ordersResponse = await fetch(ordersUrl, {
-        headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
-        }
-      })
+      const headers = {
+        'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
+      }
 
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json()
+      const [ordersRes, clientsRes, statsRes, couriersRes] = await Promise.all([
+        fetch(ordersUrl, { headers }),
+        fetch('/api/admin/clients', { headers }),
+        fetch('/api/admin/statistics', { headers }),
+        fetch('/api/admin/couriers', { headers })
+      ])
+
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json()
         setOrders(ordersData)
       }
 
-      // Fetch clients
-      const clientsResponse = await fetch('/api/admin/clients', {
-        headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
-        }
-      })
-
-      if (clientsResponse.ok) {
-        const clientsData = await clientsResponse.json()
+      if (clientsRes.ok) {
+        const clientsData = await clientsRes.json()
         setClients(clientsData)
       }
 
-      // Fetch stats
-      const statsResponse = await fetch('/api/admin/statistics', {
-        headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
-        }
-      })
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json()
+      if (statsRes.ok) {
+        const statsData = await statsRes.json()
         setStats(statsData)
+      }
+
+      if (couriersRes.ok) {
+        const couriersData = await couriersRes.json()
+        setCouriers(couriersData)
       }
 
       // Fetch bin clients
@@ -369,6 +383,22 @@ export default function MiddleAdminPage() {
       console.error('Error fetching data:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchBinOrders = async () => {
+    try {
+      const response = await fetch('/api/orders?deletedOnly=true', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setBinOrders(data)
+      }
+    } catch (error) {
+      console.error('Error fetching bin orders:', error)
     }
   }
 
@@ -1023,6 +1053,96 @@ export default function MiddleAdminPage() {
     } catch (error) {
       console.error('Error resuming clients:', error)
       toast.error('Ошибка соединения с сервером. Пожалуйста, попробуйте еще раз.')
+    }
+  }
+
+  const handleBulkUpdateOrders = async () => {
+    if (selectedOrders.size === 0) return
+    setIsUpdatingBulk(true)
+
+    try {
+      const updates: any = {}
+      if (bulkOrderUpdates.orderStatus) updates.orderStatus = bulkOrderUpdates.orderStatus
+      if (bulkOrderUpdates.paymentStatus) updates.paymentStatus = bulkOrderUpdates.paymentStatus
+      if (bulkOrderUpdates.courierId) updates.courierId = bulkOrderUpdates.courierId
+      if (bulkOrderUpdates.deliveryDate) updates.deliveryDate = bulkOrderUpdates.deliveryDate
+
+      const response = await fetch('/api/admin/orders/bulk-update', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderIds: Array.from(selectedOrders),
+          updates
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success(`Обновлено заказов: ${data.updatedCount}`)
+        setIsBulkEditOrdersModalOpen(false)
+        setSelectedOrders(new Set())
+        setBulkOrderUpdates({
+          orderStatus: '',
+          paymentStatus: '',
+          courierId: '',
+          deliveryDate: ''
+        })
+        fetchData()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Ошибка обновления заказов')
+      }
+    } catch (error) {
+      console.error('Error bulk updating orders:', error)
+      toast.error('Ошибка соединения с сервером')
+    } finally {
+      setIsUpdatingBulk(false)
+    }
+  }
+
+  const handleBulkUpdateClients = async () => {
+    if (selectedClients.size === 0) return
+    setIsUpdatingBulk(true)
+
+    try {
+      const updates: any = {}
+      if (bulkClientUpdates.isActive !== undefined) updates.isActive = bulkClientUpdates.isActive
+      if (bulkClientUpdates.calories) updates.calories = bulkClientUpdates.calories
+
+      const response = await fetch('/api/admin/clients/bulk-update', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientIds: Array.from(selectedClients),
+          updates
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success(`Обновлено клиентов: ${data.updatedCount}`)
+        setIsBulkEditClientsModalOpen(false)
+        setSelectedClients(new Set())
+        setBulkClientUpdates({
+          isActive: undefined,
+          calories: ''
+        })
+        fetchData()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Ошибка обновления клиентов')
+      }
+    } catch (error) {
+      console.error('Error bulk updating clients:', error)
+      toast.error('Ошибка соединения с сервером')
+    } finally {
+      setIsUpdatingBulk(false)
     }
   }
 
@@ -1838,6 +1958,10 @@ export default function MiddleAdminPage() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                    <Button variant="outline" size="sm" onClick={() => setIsBulkEditOrdersModalOpen(true)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Редактировать ({selectedOrders.size})
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleDeleteSelectedOrders}>
                       <Trash2 className="w-4 h-4 mr-2" />
                       Удалить выбранные ({selectedOrders.size})
@@ -2537,6 +2661,14 @@ export default function MiddleAdminPage() {
                         Выбрано клиентов: {selectedClients.size}
                       </span>
                       <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsBulkEditClientsModalOpen(true)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Редактировать ({selectedClients.size})
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -3436,11 +3568,260 @@ export default function MiddleAdminPage() {
           </TabsContent >
 
           {/* History Tab */}
-          < TabsContent value="history" className="space-y-6" >
+          <TabsContent value="history" className="space-y-6">
             <HistoryTable role="MIDDLE_ADMIN" />
+          </TabsContent>
+
+          <TabsContent value="bin" className="space-y-4">
+            <Tabs defaultValue="orders" className="w-full">
+              <TabsList>
+                <TabsTrigger value="orders">Удаленные заказы</TabsTrigger>
+                <TabsTrigger value="clients">Удаленные клиенты</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="orders" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold tracking-tight">Корзина заказов</h2>
+                  <Button onClick={fetchBinOrders} variant="outline">
+                    <History className="mr-2 h-4 w-4" />
+                    Обновить
+                  </Button>
+                </div>
+
+                <div className="rounded-md border">
+                  <OrdersTable
+                    orders={binOrders}
+                    onViewOrder={(order) => {
+                      setSelectedOrder(order)
+                      setIsOrderDetailsModalOpen(true)
+                    }}
+                    selectedOrders={new Set()}
+                    onSelectOrder={() => { }}
+                    onSelectAll={() => { }}
+                    onDeleteSelected={() => { }}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="clients" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold tracking-tight">Корзина клиентов</h2>
+                  <div className="flex gap-2">
+                    {selectedBinClients.size > 0 && (
+                      <Button onClick={handleRestoreSelectedClients} variant="outline">
+                        <History className="mr-2 h-4 w-4" />
+                        Восстановить ({selectedBinClients.size})
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-md border">
+                  <div className="relative w-full overflow-auto">
+                    <table className="w-full caption-bottom text-sm">
+                      <thead className="[&_tr]:border-b">
+                        <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                            <Checkbox
+                              checked={binClients.length > 0 && selectedBinClients.size === binClients.length}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedBinClients(new Set(binClients.map(c => c.id)))
+                                } else {
+                                  setSelectedBinClients(new Set())
+                                }
+                              }}
+                            />
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Имя</th>
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Телефон</th>
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Адрес</th>
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Удален</th>
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Кем удален</th>
+                        </tr>
+                      </thead>
+                      <tbody className="[&_tr:last-child]:border-0">
+                        {binClients.map((client) => (
+                          <tr key={client.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                            <td className="p-4 align-middle">
+                              <Checkbox
+                                checked={selectedBinClients.has(client.id)}
+                                onCheckedChange={(checked) => {
+                                  const newSelected = new Set(selectedBinClients)
+                                  if (checked) {
+                                    newSelected.add(client.id)
+                                  } else {
+                                    newSelected.delete(client.id)
+                                  }
+                                  setSelectedBinClients(newSelected)
+                                }}
+                              />
+                            </td>
+                            <td className="p-4 align-middle font-medium">{client.name}</td>
+                            <td className="p-4 align-middle">{client.phone}</td>
+                            <td className="p-4 align-middle">{client.address}</td>
+                            <td className="p-4 align-middle">
+                              {client.deletedAt ? new Date(client.deletedAt).toLocaleDateString('ru-RU') : '-'}
+                            </td>
+                            <td className="p-4 align-middle">{client.deletedBy || '-'}</td>
+                          </tr>
+                        ))}
+                        {binClients.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                              Нет удаленных клиентов
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </TabsContent >
         </Tabs >
       </main >
-    </div >
+      {/* Bulk Edit Orders Modal */}
+      <Dialog open={isBulkEditOrdersModalOpen} onOpenChange={setIsBulkEditOrdersModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Редактировать выбранные заказы ({selectedOrders.size})</DialogTitle>
+            <DialogDescription>
+              Измените параметры для выбранных заказов. Оставьте поля пустыми, чтобы не менять их.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-2">
+              <Label htmlFor="bulkOrderStatus" className="text-right">
+                Статус
+              </Label>
+              <select
+                id="bulkOrderStatus"
+                value={bulkOrderUpdates.orderStatus}
+                onChange={(e) => setBulkOrderUpdates(prev => ({ ...prev, orderStatus: e.target.value }))}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Не менять</option>
+                <option value="PENDING">Ожидает</option>
+                <option value="IN_DELIVERY">В доставке</option>
+                <option value="DELIVERED">Доставлен</option>
+                <option value="FAILED">Отменен</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-2">
+              <Label htmlFor="bulkPaymentStatus" className="text-right">
+                Оплата
+              </Label>
+              <select
+                id="bulkPaymentStatus"
+                value={bulkOrderUpdates.paymentStatus}
+                onChange={(e) => setBulkOrderUpdates(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Не менять</option>
+                <option value="PAID">Оплачен</option>
+                <option value="UNPAID">Не оплачен</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-2">
+              <Label htmlFor="bulkCourier" className="text-right">
+                Курьер
+              </Label>
+              <select
+                id="bulkCourier"
+                value={bulkOrderUpdates.courierId}
+                onChange={(e) => setBulkOrderUpdates(prev => ({ ...prev, courierId: e.target.value }))}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Не менять</option>
+                <option value="none">Снять курьера</option>
+                {couriers.map(courier => (
+                  <option key={courier.id} value={courier.id}>{courier.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-2">
+              <Label htmlFor="bulkDeliveryDate" className="text-right">
+                Дата
+              </Label>
+              <Input
+                id="bulkDeliveryDate"
+                type="date"
+                value={bulkOrderUpdates.deliveryDate}
+                onChange={(e) => setBulkOrderUpdates(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkEditOrdersModalOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleBulkUpdateOrders} disabled={isUpdatingBulk}>
+              {isUpdatingBulk ? 'Обновление...' : 'Обновить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Clients Modal */}
+      <Dialog open={isBulkEditClientsModalOpen} onOpenChange={setIsBulkEditClientsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Редактировать выбранных клиентов ({selectedClients.size})</DialogTitle>
+            <DialogDescription>
+              Измените параметры для выбранных клиентов. Оставьте поля пустыми, чтобы не менять их.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-2">
+              <Label htmlFor="bulkIsActive" className="text-right">
+                Статус
+              </Label>
+              <select
+                id="bulkIsActive"
+                value={bulkClientUpdates.isActive === undefined ? '' : bulkClientUpdates.isActive.toString()}
+                onChange={(e) => setBulkClientUpdates(prev => ({
+                  ...prev,
+                  isActive: e.target.value === '' ? undefined : e.target.value === 'true'
+                }))}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Не менять</option>
+                <option value="true">Активен</option>
+                <option value="false">Приостановлен</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-2">
+              <Label htmlFor="bulkCalories" className="text-right">
+                Калории
+              </Label>
+              <select
+                id="bulkCalories"
+                value={bulkClientUpdates.calories}
+                onChange={(e) => setBulkClientUpdates(prev => ({ ...prev, calories: e.target.value }))}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Не менять</option>
+                <option value="1200">1200</option>
+                <option value="1600">1600</option>
+                <option value="2000">2000</option>
+                <option value="2500">2500</option>
+                <option value="3000">3000</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkEditClientsModalOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleBulkUpdateClients} disabled={isUpdatingBulk}>
+              {isUpdatingBulk ? 'Обновление...' : 'Обновить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

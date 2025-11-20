@@ -20,11 +20,16 @@ interface Order {
         phone: string
     }
     deliveryAddress: string
+    latitude?: number
+    longitude?: number
     deliveryTime: string
     quantity: number
     calories: number
-    orderStatus: string
+    specialFeatures: string
     paymentStatus: string
+    paymentMethod: string
+    orderStatus: string
+    isPrepaid: boolean
     createdAt: string
     deliveryDate?: string
     isAutoOrder?: boolean
@@ -38,6 +43,7 @@ interface OrdersTableProps {
     onSelectOrder: (id: string) => void
     onSelectAll: () => void
     onDeleteSelected: () => void
+    onViewOrder?: (order: Order) => void
 }
 
 export function OrdersTable({
@@ -45,7 +51,8 @@ export function OrdersTable({
     selectedOrders,
     onSelectOrder,
     onSelectAll,
-    onDeleteSelected
+    onDeleteSelected,
+    onViewOrder
 }: OrdersTableProps) {
     return (
         <div className="space-y-4">
@@ -113,7 +120,7 @@ export function OrdersTable({
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
-                                        <Button variant="ghost" size="icon">
+                                        <Button variant="ghost" size="icon" onClick={() => onViewOrder?.(order)}>
                                             <Eye className="w-4 h-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon">
@@ -190,7 +197,7 @@ export function OrdersTable({
                                         {order.paymentStatus === 'PAID' ? 'Оплачено' : 'Не оплачено'}
                                     </Badge>
                                     <div className="flex gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewOrder?.(order)}>
                                             <Eye className="w-4 h-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-8 w-8">

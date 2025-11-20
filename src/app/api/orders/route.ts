@@ -30,7 +30,18 @@ export async function GET(request: NextRequest) {
       try { filters = JSON.parse(filtersParam) } catch (error) { console.error('Error parsing filters:', error) }
     }
 
+    const includeDeleted = searchParams.get('includeDeleted') === 'true'
+    const deletedOnly = searchParams.get('deletedOnly') === 'true'
+
+    const whereClause: any = {}
+    if (deletedOnly) {
+      whereClause.deletedAt = { not: null }
+    } else if (!includeDeleted) {
+      whereClause.deletedAt = null
+    }
+
     const orders = await db.order.findMany({
+      where: whereClause,
       include: { customer: { select: { name: true, phone: true } } },
       orderBy: { createdAt: 'desc' }
     })
