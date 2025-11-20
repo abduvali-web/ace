@@ -29,6 +29,15 @@ export async function GET(request: NextRequest) {
         where: {
           deletedAt: null
         },
+        include: {
+          // @ts-ignore
+          defaultCourier: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       })
 
@@ -59,7 +68,9 @@ export async function GET(request: NextRequest) {
           createdAt: dbClient.createdAt.toISOString(),
           lastAutoOrderCheck: globalClient?.lastAutoOrderCheck || dbClient.createdAt.toISOString(),
           latitude: dbClient.latitude,
-          longitude: dbClient.longitude
+          longitude: dbClient.longitude,
+          defaultCourierId: (dbClient as any).defaultCourierId,
+          defaultCourierName: (dbClient as any).defaultCourier?.name
         }
       })
 
@@ -133,7 +144,18 @@ export async function POST(request: NextRequest) {
           }),
           isActive: isActive !== undefined ? isActive : true,
           latitude,
-          longitude
+          longitude,
+          // @ts-ignore
+          defaultCourierId: body.defaultCourierId || null
+        },
+        include: {
+          // @ts-ignore
+          defaultCourier: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
         }
       })
 

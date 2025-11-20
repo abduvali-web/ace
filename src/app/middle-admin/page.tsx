@@ -92,6 +92,8 @@ interface Order {
   isAutoOrder?: boolean
   customerName?: string
   customerPhone?: string
+  courierId?: string
+  courierName?: string
 }
 
 interface Client {
@@ -115,6 +117,11 @@ interface Client {
   createdAt: string
   deletedAt?: string
   deletedBy?: string
+  defaultCourierId?: string
+  defaultCourierName?: string
+  googleMapsLink?: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface BinClient {
@@ -221,6 +228,7 @@ export default function MiddleAdminPage() {
     },
     autoOrdersEnabled: true,
     isActive: true,
+    defaultCourierId: '',
     googleMapsLink: '',
     latitude: null as number | null,
     longitude: null as number | null
@@ -238,12 +246,14 @@ export default function MiddleAdminPage() {
     isPrepaid: false,
     selectedClientId: '',
     latitude: null as number | null,
-    longitude: null as number | null
+    longitude: null as number | null,
+    courierId: ''
   })
   const [parsedCoords, setParsedCoords] = useState<{ lat: number, lng: number } | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isCreatingOrder, setIsCreatingOrder] = useState(false)
   const [isCreatingCourier, setIsCreatingCourier] = useState(false)
+  const [editingClientId, setEditingClientId] = useState<string | null>(null)
   const [isCreatingFeature, setIsCreatingFeature] = useState(false)
   const [isCreatingClient, setIsCreatingClient] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -707,6 +717,8 @@ export default function MiddleAdminPage() {
 
 
 
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
+
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsCreatingOrder(true)
@@ -740,14 +752,38 @@ export default function MiddleAdminPage() {
         date: selectedDate ? selectedDate.toISOString().split('T')[0] : null
       }
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orderDataWithCoords)
-      })
+      let response;
+      if (editingOrderId) {
+        // Update existing order
+        // We need to use a different endpoint or method for full update
+        // Currently we only have PATCH for status/courier actions
+        // Let's assume we can use the same POST endpoint but with an ID or a new PUT endpoint
+        // Since we don't have a full update endpoint, we might need to create one or use the bulk update one for single item
+        // But bulk update is limited.
+        // Let's use a new action 'update_details' on the [id] route or create a new route.
+        // For now, let's use the [id] route with a custom action.
+        response = await fetch(`/api/orders/${editingOrderId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'update_details',
+            ...orderDataWithCoords
+          })
+        })
+      } else {
+        // Create new order
+        response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderDataWithCoords)
+        })
+      }
 
       const data = await response.json()
 
@@ -767,17 +803,40 @@ export default function MiddleAdminPage() {
           isPrepaid: false,
           selectedClientId: '',
           latitude: null,
-          longitude: null
+          longitude: null,
+          courierId: ''
         })
+        setEditingOrderId(null)
         fetchData()
       } else {
-        setOrderError(data.error || 'Ошибка создания заказа')
+        setOrderError(data.error || 'Ошибка сохранения заказа')
       }
     } catch (error) {
       setOrderError('Ошибка соединения с сервером')
     } finally {
       setIsCreatingOrder(false)
     }
+  }
+
+  const handleEditOrder = (order: Order) => {
+    setEditingOrderId(order.id)
+    setOrderFormData({
+      customerName: order.customer.name,
+      customerPhone: order.customer.phone,
+      deliveryAddress: order.deliveryAddress,
+      deliveryTime: order.deliveryTime,
+      quantity: order.quantity,
+      calories: order.calories,
+      specialFeatures: order.specialFeatures || '',
+      paymentStatus: order.paymentStatus as string,
+      paymentMethod: order.paymentMethod as string,
+      isPrepaid: order.isPrepaid,
+      selectedClientId: '', // We don't link back to client selection for now to avoid overwriting
+      latitude: order.latitude || null,
+      longitude: order.longitude || null,
+      courierId: order.courierId || ''
+    })
+    setIsCreateOrderModalOpen(true)
   }
 
   const handleCreateCourier = async (e: React.FormEvent) => {
@@ -856,8 +915,14 @@ export default function MiddleAdminPage() {
     setClientError('')
 
     try {
-      const response = await fetch('/api/admin/clients', {
-        method: 'POST',
+      const url = editingClientId
+        ? `/api/admin/clients/${editingClientId}`
+        : '/api/admin/clients'
+
+      const method = editingClientId ? 'PATCH' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
@@ -886,22 +951,25 @@ export default function MiddleAdminPage() {
           },
           autoOrdersEnabled: true,
           isActive: true,
+          defaultCourierId: '',
           googleMapsLink: '',
           latitude: null,
           longitude: null
         })
+        setEditingClientId(null)
 
-        // Show success message with auto orders info
-        let message = `Клиент "${data.client?.name || clientFormData.name}" успешно создан!`
+        // Show success message
+        const action = editingClientId ? 'обновлен' : 'создан'
+        let message = `Клиент "${data.client?.name || clientFormData.name}" успешно ${action}!`
         let description = ''
-        if (data.autoOrdersCreated && data.autoOrdersCreated > 0) {
+        if (!editingClientId && data.autoOrdersCreated && data.autoOrdersCreated > 0) {
           description = `Автоматически создано заказов: ${data.autoOrdersCreated} (на следующие 30 дней)`
         }
 
         toast.success(message, { description })
         fetchData()
       } else {
-        const errorMessage = data.error || 'Ошибка создания клиента'
+        const errorMessage = data.error || `Ошибка ${editingClientId ? 'обновления' : 'создания'} клиента`
         const errorDetails = data.details ? `\n${data.details}` : ''
         setClientError(`${errorMessage}${errorDetails}`)
         toast.error(errorMessage, { description: data.details })
@@ -911,6 +979,33 @@ export default function MiddleAdminPage() {
     } finally {
       setIsCreatingClient(false)
     }
+  }
+
+  const handleEditClient = (client: Client) => {
+    setClientFormData({
+      name: client.name,
+      phone: client.phone,
+      address: client.address,
+      calories: client.calories,
+      specialFeatures: client.specialFeatures || '',
+      deliveryDays: client.deliveryDays || {
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false
+      },
+      autoOrdersEnabled: client.autoOrdersEnabled,
+      isActive: client.isActive,
+      defaultCourierId: client.defaultCourierId || '',
+      googleMapsLink: client.googleMapsLink || '',
+      latitude: client.latitude || null,
+      longitude: client.longitude || null
+    })
+    setEditingClientId(client.id)
+    setIsCreateClientModalOpen(true)
   }
 
   const handleToggleClientStatus = async (clientId: string, currentStatus: boolean) => {
@@ -1747,11 +1842,11 @@ export default function MiddleAdminPage() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
                         <DialogHeader>
-                          <DialogTitle>Создать Новый Заказ</DialogTitle>
+                          <DialogTitle>{editingOrderId ? 'Редактировать Заказ' : 'Создать Новый Заказ'}</DialogTitle>
                           <DialogDescription>
-                            Заполните информацию о новом заказе. Вы можете выбрать клиента из списка для автозаполнения данных.
+                            {editingOrderId ? 'Измените данные заказа' : 'Заполните информацию о новом заказе. Вы можете выбрать клиента из списка для автозаполнения данных.'}
                           </DialogDescription>
-                          {orderFormData.selectedClientId && orderFormData.selectedClientId !== "manual" && (
+                          {!editingOrderId && orderFormData.selectedClientId && orderFormData.selectedClientId !== "manual" && (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                               <p className="text-xs text-green-800">
                                 ✅ Данные клиента заполнены автоматически
@@ -1935,6 +2030,24 @@ export default function MiddleAdminPage() {
                                   placeholder="Особые пожелания"
                                 />
                               </div>
+                              <div className="grid grid-cols-4 items-center gap-2">
+                                <Label htmlFor="courier" className="text-right">
+                                  Курьер
+                                </Label>
+                                <select
+                                  id="courier"
+                                  value={orderFormData.courierId}
+                                  onChange={(e) => setOrderFormData(prev => ({ ...prev, courierId: e.target.value }))}
+                                  className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <option value="">Автоматически (если есть у клиента)</option>
+                                  {couriers.map((courier) => (
+                                    <option key={courier.id} value={courier.id}>
+                                      {courier.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                               {orderError && (
                                 <div className="col-span-4">
                                   <Alert variant="destructive">
@@ -1949,11 +2062,12 @@ export default function MiddleAdminPage() {
                           <Button type="button" variant="outline" onClick={() => {
                             setIsCreateOrderModalOpen(false)
                             setOrderFormData(prev => ({ ...prev, latitude: null, longitude: null }))
+                            setEditingOrderId(null)
                           }}>
                             Отмена
                           </Button>
                           <Button type="submit" disabled={isCreatingOrder} onClick={handleCreateOrder}>
-                            {isCreatingOrder ? 'Создание...' : 'Создать заказ'}
+                            {isCreatingOrder ? 'Сохранение...' : (editingOrderId ? 'Сохранить изменения' : 'Создать заказ')}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -2292,117 +2406,19 @@ export default function MiddleAdminPage() {
               }
 
               {/* Orders Table */}
-              <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
-                <div className="max-h-[600px] overflow-y-auto">
-                  <table className="w-full">
-                    <thead className="bg-slate-50/80 backdrop-blur sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          <input
-                            type="checkbox"
-                            className="rounded"
-                            checked={selectedOrders.size === orders.length && orders.length > 0}
-                            onChange={handleSelectAllOrders}
-                          />
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">№</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">День</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Клиент</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Дата</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Время</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Тип</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Кол-во</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Калории</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Особенности</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Адрес</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Статус</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Телефон</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-100">
-                      {orders.map((order) => (
-                        <tr key={order.id} className="hover:bg-slate-50/80 transition-colors duration-200 cursor-pointer group">
-                          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">
-                            <input
-                              type="checkbox"
-                              className="rounded"
-                              checked={selectedOrders.has(order.id)}
-                              onChange={() => handleOrderSelect(order.id)}
-                            />
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">
-                            {order.orderNumber}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.deliveryDate && new Date(order.deliveryDate).getDate() % 2 === 0 ? 'Четный день' : 'Нечетный день'}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.customerName || order.customer?.name || 'Неизвестный клиент'}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.deliveryDate || '-'}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.deliveryTime}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.isAutoOrder ? (
-                              <Badge variant="secondary" className="text-xs">
-                                🤖 Авто
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">
-                                📝 Ручной
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.quantity}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.calories}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.specialFeatures ? 'Есть' : 'Нет'}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.deliveryAddress}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className={`w-2 h-2 rounded-full ${getStatusColor(order.orderStatus)} mr-2`}></div>
-                              <span className="text-sm">{getStatusText(order.orderStatus)}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {order.customerPhone || order.customer?.phone || 'Нет телефона'}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenOrder(order.id)}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Открыть
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleGetAdminRoute(order)}
-                              >
-                                <Route className="w-4 h-4 mr-1" />
-                                Маршрут
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="rounded-md border">
+                <OrdersTable
+                  orders={orders}
+                  selectedOrders={selectedOrders}
+                  onSelectOrder={handleOrderSelect}
+                  onSelectAll={handleSelectAllOrders}
+                  onDeleteSelected={handleDeleteSelectedOrders}
+                  onViewOrder={(order) => {
+                    setSelectedOrder(order)
+                    setIsOrderDetailsModalOpen(true)
+                  }}
+                  onEditOrder={handleEditOrder}
+                />
               </div>
 
               {/* Table Actions */}
@@ -2469,9 +2485,9 @@ export default function MiddleAdminPage() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                          <DialogTitle>Создать Клиента</DialogTitle>
+                          <DialogTitle>{editingClientId ? 'Редактировать Клиента' : 'Создать Клиента'}</DialogTitle>
                           <DialogDescription>
-                            Создайте нового клиента в системе
+                            {editingClientId ? 'Измените данные клиента' : 'Создайте нового клиента в системе'}
                           </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleCreateClient}>
@@ -2621,6 +2637,24 @@ export default function MiddleAdminPage() {
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2 pt-2">
+                                  <Label htmlFor="defaultCourier" className="text-sm w-full">
+                                    Курьер по умолчанию:
+                                    <select
+                                      id="defaultCourier"
+                                      value={clientFormData.defaultCourierId}
+                                      onChange={(e) => setClientFormData(prev => ({ ...prev, defaultCourierId: e.target.value }))}
+                                      className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                      <option value="">Нет</option>
+                                      {couriers.map((courier) => (
+                                        <option key={courier.id} value={courier.id}>
+                                          {courier.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2 pt-2">
                                   <Checkbox
                                     id="autoOrdersEnabled"
                                     checked={clientFormData.autoOrdersEnabled}
@@ -2643,7 +2677,7 @@ export default function MiddleAdminPage() {
                               Отмена
                             </Button>
                             <Button type="submit" disabled={isCreatingClient}>
-                              {isCreatingClient ? 'Создание...' : 'Создать'}
+                              {isCreatingClient ? 'Сохранение...' : (editingClientId ? 'Сохранить' : 'Создать')}
                             </Button>
                           </DialogFooter>
                         </form>
@@ -2664,10 +2698,14 @@ export default function MiddleAdminPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setIsBulkEditClientsModalOpen(true)}
+                          onClick={() => {
+                            const client = clients.find(c => selectedClients.has(c.id))
+                            if (client) handleEditClient(client)
+                          }}
+                          disabled={selectedClients.size !== 1}
                         >
                           <Edit className="w-4 h-4 mr-2" />
-                          Редактировать ({selectedClients.size})
+                          Редактировать
                         </Button>
                         <Button
                           variant="outline"
@@ -2746,6 +2784,9 @@ export default function MiddleAdminPage() {
                           <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Дата добавления
                           </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Действия
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-slate-200">
@@ -2792,7 +2833,7 @@ export default function MiddleAdminPage() {
                                 </div>
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                <div className="flex items-center space-x-2">
+                                <div className="flex flex-col gap-1">
                                   <Badge
                                     variant={client.isActive ? "default" : "secondary"}
                                     className={
@@ -2826,6 +2867,15 @@ export default function MiddleAdminPage() {
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
                                 📅 {new Date(client.createdAt).toLocaleDateString('ru-RU')}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditClient(client)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -3001,6 +3051,14 @@ export default function MiddleAdminPage() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label className="text-right font-medium">
+                      Курьер:
+                    </Label>
+                    <div className="col-span-3">
+                      {selectedOrder.courierName || 'Не назначен'}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right font-medium">
                       Статус:
                     </Label>
                     <div className="col-span-3">
@@ -3154,7 +3212,7 @@ export default function MiddleAdminPage() {
                                 </Badge>
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-500">
-                                {new Date(client.deletedAt).toLocaleString('ru-RU')}
+                                {client.deletedAt ? new Date(client.deletedAt).toLocaleString('ru-RU') : '-'}
                               </td>
                             </tr>
                           ))
@@ -3202,8 +3260,8 @@ export default function MiddleAdminPage() {
                             <MapPin className="w-4 h-4 mt-1 text-muted-foreground" />
                             <div className="text-sm">{client.address}</div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Удалено: {new Date(client.deletedAt).toLocaleString('ru-RU')}
+                          <div className="text-sm text-muted-foreground">
+                            Удалено: {client.deletedAt ? new Date(client.deletedAt).toLocaleString('ru-RU') : '-'}
                           </div>
                         </CardContent>
                       </Card>
@@ -3591,14 +3649,14 @@ export default function MiddleAdminPage() {
                 <div className="rounded-md border">
                   <OrdersTable
                     orders={binOrders}
+                    selectedOrders={selectedOrders}
+                    onSelectOrder={handleOrderSelect}
+                    onSelectAll={handleSelectAllOrders}
+                    onDeleteSelected={handleDeleteSelectedOrders}
                     onViewOrder={(order) => {
                       setSelectedOrder(order)
                       setIsOrderDetailsModalOpen(true)
                     }}
-                    selectedOrders={new Set()}
-                    onSelectOrder={() => { }}
-                    onSelectAll={() => { }}
-                    onDeleteSelected={() => { }}
                   />
                 </div>
               </TabsContent>

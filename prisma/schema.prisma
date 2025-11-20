@@ -24,6 +24,7 @@ model Admin {
   creator         Admin?         @relation("AdminHierarchy", fields: [createdBy], references: [id])
   orders          Order[]        @relation("OrderAdmin")
   courierOrders   Order[]        @relation("OrderCourier")
+  clients         Customer[]     @relation("ClientDefaultCourier")
   actionLogs      ActionLog[]
   interfaceConfig InterfaceConfig?
 
@@ -51,6 +52,8 @@ model Customer {
   longitude    Float?
   deletedAt    DateTime?
   deletedBy    String?
+  defaultCourierId String?
+  defaultCourier   Admin?   @relation("ClientDefaultCourier", fields: [defaultCourierId], references: [id])
 
   orders       Order[]
 

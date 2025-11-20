@@ -35,6 +35,8 @@ interface Order {
     isAutoOrder?: boolean
     customerName?: string
     customerPhone?: string
+    courierId?: string
+    courierName?: string
 }
 
 interface OrdersTableProps {
@@ -44,6 +46,7 @@ interface OrdersTableProps {
     onSelectAll: () => void
     onDeleteSelected: () => void
     onViewOrder?: (order: Order) => void
+    onEditOrder?: (order: Order) => void
 }
 
 export function OrdersTable({
@@ -52,7 +55,8 @@ export function OrdersTable({
     onSelectOrder,
     onSelectAll,
     onDeleteSelected,
-    onViewOrder
+    onViewOrder,
+    onEditOrder
 }: OrdersTableProps) {
     return (
         <div className="space-y-4">
@@ -67,7 +71,7 @@ export function OrdersTable({
             </div>
 
             {/* Desktop View */}
-            <div className="hidden md:block rounded-md border">
+            <div className="hidden md:block rounded-md border overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -81,6 +85,11 @@ export function OrdersTable({
                             <TableHead>Клиент</TableHead>
                             <TableHead>Адрес</TableHead>
                             <TableHead>Время</TableHead>
+                            <TableHead>Тип</TableHead>
+                            <TableHead>Кол-во</TableHead>
+                            <TableHead>Калории</TableHead>
+                            <TableHead>Особенности</TableHead>
+                            <TableHead>Курьер</TableHead>
                             <TableHead>Статус</TableHead>
                             <TableHead>Оплата</TableHead>
                             <TableHead className="text-right">Действия</TableHead>
@@ -105,6 +114,19 @@ export function OrdersTable({
                                 </TableCell>
                                 <TableCell>{order.deliveryTime}</TableCell>
                                 <TableCell>
+                                    <Badge variant="outline">
+                                        {order.isAutoOrder ? 'Авто' : 'Ручной'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>{order.quantity}</TableCell>
+                                <TableCell>{order.calories}</TableCell>
+                                <TableCell className="max-w-[150px] truncate" title={order.specialFeatures}>
+                                    {order.specialFeatures || '-'}
+                                </TableCell>
+                                <TableCell>
+                                    {order.courierName || '-'}
+                                </TableCell>
+                                <TableCell>
                                     <Badge variant={
                                         order.orderStatus === 'DELIVERED' ? 'default' :
                                             order.orderStatus === 'PENDING' ? 'secondary' :
@@ -123,7 +145,7 @@ export function OrdersTable({
                                         <Button variant="ghost" size="icon" onClick={() => onViewOrder?.(order)}>
                                             <Eye className="w-4 h-4" />
                                         </Button>
-                                        <Button variant="ghost" size="icon">
+                                        <Button variant="ghost" size="icon" onClick={() => onEditOrder?.(order)}>
                                             <Edit className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -200,7 +222,7 @@ export function OrdersTable({
                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewOrder?.(order)}>
                                             <Eye className="w-4 h-4" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditOrder?.(order)}>
                                             <Edit className="w-4 h-4" />
                                         </Button>
                                     </div>

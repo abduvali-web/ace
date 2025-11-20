@@ -64,10 +64,7 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                                <span className="text-primary-foreground font-bold text-lg">A</span>
-                            </div>
-                            <span className="font-bold text-xl tracking-tight">AutoFood</span>
+                            <img src="/logo.svg" alt="AutoFood Logo" className="h-10 w-auto" />
                         </div>
                         <div className="flex items-center space-x-4">
                             <LanguageSwitcher />
