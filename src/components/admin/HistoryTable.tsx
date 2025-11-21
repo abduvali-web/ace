@@ -16,6 +16,14 @@ import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+
 interface ActionLog {
     id: string
     action: string
@@ -29,6 +37,12 @@ interface ActionLog {
     }
 }
 
+interface User {
+    id: string
+    name: string
+    role: string
+}
+
 interface HistoryTableProps {
     role?: string
     limit?: number
@@ -37,10 +51,36 @@ interface HistoryTableProps {
 
 export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryTableProps) {
     const [logs, setLogs] = useState<ActionLog[]>([])
+    const [users, setUsers] = useState<User[]>([])
+    const [selectedUser, setSelectedUser] = useState<string>('all')
     const [isLoading, setIsLoading] = useState(true)
     const [page, setPage] = useState(0)
     const [total, setTotal] = useState(0)
     const [hasMore, setHasMore] = useState(false)
+
+    useEffect(() => {
+        fetchUsers()
+    }, [])
+
+    useEffect(() => {
+        fetchLogs()
+    }, [page, limit, selectedUser])
+
+    const fetchUsers = async () => {
+        try {
+            const response = await fetch('/api/admin/users-list', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            })
+            if (response.ok) {
+                const data = await response.json()
+                setUsers(data.users || [])
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error)
+        }
+    }
 
     const fetchLogs = async () => {
         setIsLoading(true)
@@ -49,6 +89,10 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
                 limit: limit.toString(),
                 offset: (page * limit).toString()
             })
+
+            if (selectedUser && selectedUser !== 'all') {
+                params.append('adminId', selectedUser)
+            }
 
             const response = await fetch(`/api/admin/action-logs?${params.toString()}`, {
                 headers: {
@@ -69,10 +113,6 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
         }
     }
 
-    useEffect(() => {
-        fetchLogs()
-    }, [page, limit])
-
     const getActionBadgeColor = (action: string) => {
         if (action.includes('CREATE')) return 'bg-green-100 text-green-800'
         if (action.includes('UPDATE')) return 'bg-blue-100 text-blue-800'
@@ -80,18 +120,45 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
         return 'bg-slate-100 text-slate-800'
     }
 
+    const getRoleLabel = (role: string) => {
+        switch (role) {
+            case 'SUPER_ADMIN': return 'Супер Админ'
+            case 'MIDDLE_ADMIN': return 'Средний Админ'
+            case 'LOW_ADMIN': return 'Низкий Админ'
+            case 'COURIER': return 'Курьер'
+            default: return role
+        }
+    }
+
     return (
         <Card className="glass-card border-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 pb-4">
                 <div className="space-y-1">
                     <CardTitle>История действий</CardTitle>
                     <CardDescription>
                         Всего записей: {total}
                     </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchLogs} disabled={isLoading}>
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    {users.length > 0 && (
+                        <Select value={selectedUser} onValueChange={setSelectedUser}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Все пользователи" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Все пользователи</SelectItem>
+                                {users.map(user => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                        {user.name} ({getRoleLabel(user.role)})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    <Button variant="outline" size="sm" onClick={fetchLogs} disabled={isLoading}>
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="hidden md:block rounded-md border">
@@ -126,7 +193,7 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{log.admin.name}</span>
-                                                <span className="text-xs text-muted-foreground">{log.admin.role}</span>
+                                                <span className="text-xs text-muted-foreground">{getRoleLabel(log.admin.role)}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -161,7 +228,7 @@ export function HistoryTable({ role, limit = 10, compactMode = false }: HistoryT
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-col">
                                             <span className="font-medium text-sm">{log.admin.name}</span>
-                                            <span className="text-xs text-muted-foreground">{log.admin.role}</span>
+                                            <span className="text-xs text-muted-foreground">{getRoleLabel(log.admin.role)}</span>
                                         </div>
                                         <span className="text-xs text-muted-foreground">
                                             {format(new Date(log.createdAt), 'dd MMM HH:mm', { locale: ru })}

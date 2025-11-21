@@ -598,6 +598,11 @@ export default function SuperAdminPage() {
               <InterfaceSettings />
             </TabsContent>
 
+            {/* Chat Tab */}
+            <TabsContent value="chat" className="space-y-6">
+              <ChatTab />
+            </TabsContent>
+
             {/* Statistics Tab */}
             <TabsContent value="statistics" className="space-y-6">
               {/* Order Statistics */}

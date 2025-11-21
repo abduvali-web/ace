@@ -18,10 +18,21 @@ const icon = L.icon({
 
 interface Order {
     id: string
+    orderNumber: number
+    customer: {
+        name: string
+        phone: string
+    }
+    deliveryAddress: string
     latitude: number
     longitude: number
-    deliveryAddress: string
+    deliveryTime: string
+    quantity: number
+    calories: number
+    specialFeatures: string
     orderStatus: string
+    deliveryDate?: string
+    createdAt: string
     [key: string]: any
 }
 

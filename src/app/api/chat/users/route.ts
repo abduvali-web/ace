@@ -89,6 +89,22 @@ export async function GET(request: NextRequest) {
             // Couriers/Low admins can chat with:
             // 1. Their creator middle admin
             // 2. Other couriers/low admins created by the same middle admin
+            // 3. Super Admins (always available)
+
+            // Get Super Admins
+            const superAdmins = await db.admin.findMany({
+                where: {
+                    role: 'SUPER_ADMIN',
+                    isActive: true
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true
+                }
+            })
+            availableUsers = [...superAdmins]
 
             const creatorId = currentUser.createdBy
 
@@ -105,7 +121,10 @@ export async function GET(request: NextRequest) {
                 })
 
                 if (creator) {
-                    availableUsers.push(creator)
+                    // Check if creator is already in list (e.g. if creator is super admin)
+                    if (!availableUsers.some(u => u.id === creator.id)) {
+                        availableUsers.push(creator)
+                    }
                 }
 
                 // Get peers (other users created by same admin)
