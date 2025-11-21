@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { getAuthUser } from '@/lib/auth-utils'
+import { passwordSchema } from '@/lib/validations'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
     try {
-        const authHeader = request.headers.get('authorization')
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        const user = await getAuthUser(request)
+        if (!user) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             )
         }
-
-        const token = authHeader.substring(7)
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { adminId: string }
 
         const body = await request.json()
         const { currentPassword, newPassword } = body
@@ -27,16 +26,21 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        if (newPassword.length < 8) {
-            return NextResponse.json(
-                { error: 'New password must be at least 8 characters long' },
-                { status: 400 }
-            )
+        // Validate new password strength using Zod schema
+        try {
+            passwordSchema.parse(newPassword)
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                return NextResponse.json(
+                    { error: error.errors[0].message },
+                    { status: 400 }
+                )
+            }
         }
 
         // Get admin
         const admin = await db.admin.findUnique({
-            where: { id: decoded.adminId }
+            where: { id: user.id }
         })
 
         if (!admin) {
@@ -68,17 +72,17 @@ export async function POST(request: NextRequest) {
 
         // Update password
         await db.admin.update({
-            where: { id: decoded.adminId },
+            where: { id: user.id },
             data: { password: hashedPassword }
         })
 
         // Log the action
         await db.actionLog.create({
             data: {
-                adminId: decoded.adminId,
+                adminId: user.id,
                 action: 'PASSWORD_CHANGED',
                 entityType: 'ADMIN',
-                entityId: decoded.adminId,
+                entityId: user.id,
                 description: `Password changed for ${admin.email}`
             }
         })
@@ -89,14 +93,11 @@ export async function POST(request: NextRequest) {
         )
     } catch (error) {
         console.error('Change password error:', error)
-        if (error instanceof jwt.JsonWebTokenError) {
-            return NextResponse.json(
-                { error: 'Invalid token' },
-                { status: 401 }
-            )
-        }
         return NextResponse.json(
-            { error: 'Internal server error' },
+            {
+                error: 'Internal server error',
+                ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+            },
             { status: 500 }
         )
     }
