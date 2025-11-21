@@ -23,26 +23,10 @@ export default {
             const isOnHomePage = nextUrl.pathname === '/'
             const isOnSignup = nextUrl.pathname === '/signup'
 
-            // Allow everyone to access home page, signup page, and login page (when not logged in)
-            if (isOnHomePage || isOnSignup || (isOnLogin && !isLoggedIn)) {
+            // Allow everyone to access home page, signup page, and login page
+            // (even if logged in - they might want to switch accounts)
+            if (isOnHomePage || isOnSignup || isOnLogin) {
                 return true
-            }
-
-            // If logged in and trying to access login page, redirect to dashboard
-            if (isLoggedIn && isOnLogin) {
-                const role = (auth.user as any).role
-                switch (role) {
-                    case 'SUPER_ADMIN':
-                        return Response.redirect(new URL('/super-admin', nextUrl))
-                    case 'MIDDLE_ADMIN':
-                        return Response.redirect(new URL('/middle-admin', nextUrl))
-                    case 'LOW_ADMIN':
-                        return Response.redirect(new URL('/low-admin', nextUrl))
-                    case 'COURIER':
-                        return Response.redirect(new URL('/courier', nextUrl))
-                    default:
-                        return Response.redirect(new URL('/middle-admin', nextUrl))
-                }
             }
 
             if (isOnDashboard) {

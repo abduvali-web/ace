@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { signOut } from 'next-auth/react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -340,10 +341,12 @@ export default function CourierPage() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear localStorage (for backward compatibility)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    window.location.href = '/'
+    // Sign out from NextAuth (clears session cookies)
+    await signOut({ callbackUrl: '/', redirect: true })
   }
 
   if (isLoading) {

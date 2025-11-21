@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -442,12 +443,14 @@ export default function MiddleAdminPage() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear localStorage (for backward compatibility)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/'
     }
+    // Sign out from NextAuth (clears session cookies)
+    await signOut({ callbackUrl: '/', redirect: true })
   }
 
   const handleOrderSelect = (orderId: string) => {
