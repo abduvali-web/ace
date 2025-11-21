@@ -64,15 +64,8 @@ export default function CourierPage() {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | undefined>(undefined)
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token')
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-
-    if (!token || user.role !== 'COURIER') {
-      window.location.href = '/'
-      return
-    }
-
+    // Fetch data on initial load
+    // Authentication is handled by NextAuth middleware
     fetchOrders()
     getCurrentLocation()
 

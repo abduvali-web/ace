@@ -319,18 +319,8 @@ export default function MiddleAdminPage() {
   }, [clientStatusFilter])
 
   useEffect(() => {
-    // Check authentication only on client side
-    if (typeof window === 'undefined') return
-
-    // Check authentication
-    const token = localStorage.getItem('token')
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-
-    if (!token || user.role !== 'MIDDLE_ADMIN') {
-      window.location.href = '/'
-      return
-    }
-
+    // Fetch data on initial load
+    // Authentication is handled by NextAuth middleware
     fetchData()
   }, []) // Initial load
 

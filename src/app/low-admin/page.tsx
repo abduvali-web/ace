@@ -93,15 +93,8 @@ export default function LowAdminPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token')
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-
-    if (!token || user.role !== 'LOW_ADMIN') {
-      window.location.href = '/'
-      return
-    }
-
+    // Fetch data on initial load
+    // Authentication is handled by NextAuth middleware
     fetchData()
   }, [selectedDate, filters])
 
