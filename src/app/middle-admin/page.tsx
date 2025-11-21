@@ -59,6 +59,9 @@ import { InterfaceSettings } from '@/components/admin/InterfaceSettings'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { UserGuide } from '@/components/UserGuide'
+import { TrialStatus } from '@/components/admin/TrialStatus'
+import { ChangePasswordModal } from '@/components/admin/ChangePasswordModal'
+import { ChatTab } from '@/components/chat/ChatTab'
 
 interface Admin {
   id: string
@@ -67,6 +70,7 @@ interface Admin {
   role: string
   isActive: boolean
   createdAt: string
+  allowedTabs?: string[]
 }
 
 interface Order {
@@ -194,6 +198,17 @@ export default function MiddleAdminPage() {
   const [isUpdatingBulk, setIsUpdatingBulk] = useState(false)
   const [isOrderDetailsModalOpen, setIsOrderDetailsModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
+  const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null)
+  const [isEditAdminModalOpen, setIsEditAdminModalOpen] = useState(false)
+  const [editAdminFormData, setEditAdminFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'LOW_ADMIN',
+    isActive: true,
+    allowedTabs: [] as string[]
+  })
   const [createFormData, setCreateFormData] = useState({
     name: '',
     email: '',
@@ -326,21 +341,29 @@ export default function MiddleAdminPage() {
     }
   }, [selectedDate, filters])
 
-  const fetchData = async () => {
-    if (typeof window === 'undefined') return
-
+  const fetchLowAdmins = async () => {
     try {
-      // Fetch low admins
-      const adminsResponse = await fetch('/api/admin/low-admins', {
+      const response = await fetch('/api/admin/low-admins', {
         headers: {
           'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
         }
       })
 
-      if (adminsResponse.ok) {
-        const adminsData = await adminsResponse.json()
+      if (response.ok) {
+        const adminsData = await response.json()
         setLowAdmins(adminsData)
       }
+    } catch (error) {
+      console.error('Error fetching low admins:', error)
+    }
+  }
+
+  const fetchData = async () => {
+    if (typeof window === 'undefined') return
+
+    try {
+      // Fetch low admins
+      await fetchLowAdmins()
 
       // Fetch orders
       const ordersUrl = selectedDate
@@ -504,6 +527,56 @@ export default function MiddleAdminPage() {
       setCreateError('Ошибка соединения с сервером')
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handleEditAdmin = (admin: Admin) => {
+    setEditingAdmin(admin)
+    setEditAdminFormData({
+      name: admin.name,
+      email: admin.email,
+      password: '',
+      role: admin.role,
+      isActive: admin.isActive,
+      allowedTabs: admin.allowedTabs || []
+    })
+    setIsEditAdminModalOpen(true)
+  }
+
+  const handleUpdateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingAdmin) return
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/admin/low-admins/${editingAdmin.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editAdminFormData.name,
+          email: editAdminFormData.email,
+          role: editAdminFormData.role,
+          isActive: editAdminFormData.isActive,
+          allowedTabs: editAdminFormData.allowedTabs,
+          ...(editAdminFormData.password ? { password: editAdminFormData.password } : {})
+        })
+      })
+
+      if (response.ok) {
+        setIsEditAdminModalOpen(false)
+        setEditingAdmin(null)
+        fetchData()
+        toast.success('Администратор успешно обновлен')
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Ошибка обновления администратора')
+      }
+    } catch (error) {
+      console.error('Error updating admin:', error)
+      toast.error('Ошибка обновления администратора')
     }
   }
 
@@ -1011,12 +1084,12 @@ export default function MiddleAdminPage() {
   const handleToggleClientStatus = async (clientId: string, currentStatus: boolean) => {
     try {
       const response = await fetch(`/api/admin/clients/toggle-status`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ clientId, isActive: !currentStatus })
+        body: JSON.stringify({ clientIds: [clientId], isActive: !currentStatus })
       })
 
       if (response.ok) {
@@ -1197,6 +1270,8 @@ export default function MiddleAdminPage() {
       setIsUpdatingBulk(false)
     }
   }
+
+
 
   const handleBulkUpdateClients = async () => {
     if (selectedClients.size === 0) return
@@ -1508,9 +1583,10 @@ export default function MiddleAdminPage() {
                   icon: <History className="w-5 h-5 text-primary" />
                 }
               ]} />
-              <Button variant="outline" size="sm" onClick={() => toast.info('Профиль администратора', { description: 'Функционал редактирования профиля в разработке' })}>
+              <TrialStatus compact />
+              <Button variant="outline" size="sm" onClick={() => setIsChangePasswordOpen(true)}>
                 <User className="w-4 h-4 mr-2" />
-                Профиль
+                Change Password
               </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
@@ -1520,6 +1596,8 @@ export default function MiddleAdminPage() {
           </div>
         </div>
       </header>
+
+      <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col gap-4">
@@ -1570,6 +1648,12 @@ export default function MiddleAdminPage() {
             >
               <History className="w-4 h-4 mr-2" />
               История
+            </TabsTrigger>
+            <TabsTrigger
+              value="chat"
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
+              💬 Чат
             </TabsTrigger>
           </TabsList>
 
@@ -3102,176 +3186,6 @@ export default function MiddleAdminPage() {
             </DialogContent>
           </Dialog >
 
-          {/* Bin Tab */}
-          < TabsContent value="bin" className="space-y-6" >
-            <Card className="glass-card border-none">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>🗑️ Корзина</CardTitle>
-                    <CardDescription>
-                      Удаленные клиенты. Вы можете восстановить или удалить их навсегда.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Bin Management Buttons */}
-                {selectedBinClients.size > 0 && (
-                  <div className="mb-4 p-3 bg-slate-50 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">
-                        Выбрано клиентов: {selectedBinClients.size}
-                      </span>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRestoreSelectedClients}
-                          className="text-green-600 border-green-200 hover:bg-green-50"
-                        >
-                          ↩️ Восстановить выбранных
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handlePermanentDeleteSelected}
-                        >
-                          ⚠️ Удалить навсегда
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Bin Clients Table */}
-                {/* Desktop View */}
-                <div className="hidden md:block border rounded-lg overflow-hidden">
-                  <div className="max-h-96 overflow-y-auto">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 sticky top-0">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-12">
-                            <input
-                              type="checkbox"
-                              className="rounded border-slate-300"
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedBinClients(new Set(binClients.map(c => c.id)))
-                                } else {
-                                  setSelectedBinClients(new Set())
-                                }
-                              }}
-                              checked={selectedBinClients.size === binClients.length && binClients.length > 0}
-                            />
-                          </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Имя</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Телефон</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Адрес</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Статус при удалении</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Удалено</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-slate-200">
-                        {binClients.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                              Корзина пуста
-                            </td>
-                          </tr>
-                        ) : (
-                          binClients.map((client) => (
-                            <tr key={client.id} className="hover:bg-slate-50">
-                              <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                <input
-                                  type="checkbox"
-                                  className="rounded border-slate-300"
-                                  checked={selectedBinClients.has(client.id)}
-                                  onChange={() => handleToggleBinClientSelection(client.id)}
-                                />
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">
-                                {client.name}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                                {client.phone}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">
-                                {client.address}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                <Badge
-                                  variant={client.isActive ? "default" : "secondary"}
-                                  className={
-                                    client.isActive
-                                      ? "bg-green-100 text-green-800 border-green-200"
-                                      : "bg-red-100 text-red-800 border-red-200"
-                                  }
-                                >
-                                  {client.isActive ? 'Активен' : 'Неактивен'}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-500">
-                                {client.deletedAt ? new Date(client.deletedAt).toLocaleString('ru-RU') : '-'}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Mobile View */}
-                <div className="md:hidden space-y-4">
-                  {binClients.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Корзина пуста
-                    </div>
-                  ) : (
-                    binClients.map((client) => (
-                      <Card key={client.id} className="overflow-hidden">
-                        <CardHeader className="pb-2 bg-muted/30">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={selectedBinClients.has(client.id)}
-                                onCheckedChange={() => handleToggleBinClientSelection(client.id)}
-                              />
-                              <div className="flex flex-col">
-                                <CardTitle className="text-base">{client.name}</CardTitle>
-                                <CardDescription>{client.phone}</CardDescription>
-                              </div>
-                            </div>
-                            <Badge
-                              variant={client.isActive ? "default" : "secondary"}
-                              className={
-                                client.isActive
-                                  ? "bg-green-100 text-green-800 border-green-200"
-                                  : "bg-red-100 text-red-800 border-red-200"
-                              }
-                            >
-                              {client.isActive ? 'Активен' : 'Неактивен'}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-3">
-                          <div className="flex items-start gap-3">
-                            <MapPin className="w-4 h-4 mt-1 text-muted-foreground" />
-                            <div className="text-sm">{client.address}</div>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Удалено: {client.deletedAt ? new Date(client.deletedAt).toLocaleString('ru-RU') : '-'}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent >
-
           {/* Admins Tab */}
           < TabsContent value="admins" className="space-y-6" >
             <Card className="glass-card border-none">
@@ -3489,8 +3403,16 @@ export default function MiddleAdminPage() {
                             }
                           }}
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Удалить
+                          <Eye className="w-4 h-4 mr-1" />
+                          Пароль
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditAdmin(admin)}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Изменить
                         </Button>
                       </div>
                     </div>
@@ -3500,14 +3422,14 @@ export default function MiddleAdminPage() {
                 {/* Mobile View */}
                 <div className="md:hidden space-y-4">
                   {lowAdmins.map((admin) => (
-                    <Card key={admin.id} className="overflow-hidden">
-                      <CardHeader className="pb-2 bg-muted/30">
+                    <Card key={admin.id}>
+                      <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarFallback>{admin.name.charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col">
+                            <div>
                               <CardTitle className="text-base">{admin.name}</CardTitle>
                               <CardDescription>{admin.email}</CardDescription>
                             </div>
@@ -3518,7 +3440,7 @@ export default function MiddleAdminPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="pt-4 space-y-4">
-                        <div>
+                        <div className="flex justify-between items-center">
                           <Badge variant="outline">
                             {admin.role === 'COURIER' ? 'Курьер' : 'Низкий администратор'}
                           </Badge>
@@ -3554,6 +3476,18 @@ export default function MiddleAdminPage() {
                             variant="outline"
                             size="sm"
                             className="w-full"
+                            onClick={() => handleEditAdmin(admin)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Изменить
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant={admin.isActive ? "secondary" : "default"}
+                            size="sm"
+                            className="w-full"
                             onClick={async () => {
                               try {
                                 const response = await fetch(`/api/admin/${admin.id}/toggle-status`, {
@@ -3582,43 +3516,185 @@ export default function MiddleAdminPage() {
                             )}
                             {admin.isActive ? "Пауза" : "Старт"}
                           </Button>
-                        </div>
-
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="w-full"
-                          onClick={async () => {
-                            if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
-                              try {
-                                const response = await fetch(`/api/admin/${admin.id}/delete`, {
-                                  method: 'DELETE',
-                                  headers: {
-                                    'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full"
+                            onClick={async () => {
+                              if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+                                try {
+                                  const response = await fetch(`/api/admin/${admin.id}/delete`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                      'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
+                                    }
+                                  })
+                                  if (response.ok) {
+                                    fetchData()
+                                    toast.success('Пользователь удален')
+                                  } else {
+                                    toast.error('Ошибка удаления')
                                   }
-                                })
-                                if (response.ok) {
-                                  fetchData()
-                                  toast.success('Пользователь удален')
-                                } else {
-                                  toast.error('Ошибка удаления')
+                                } catch (error) {
+                                  toast.error('Ошибка соединения с сервером')
                                 }
-                              } catch (error) {
-                                toast.error('Ошибка соединения с сервером')
                               }
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Удалить пользователя
-                        </Button>
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Удалить
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent >
+          </TabsContent>
+
+          {/* Edit Admin Modal */}
+          <Dialog open={isEditAdminModalOpen} onOpenChange={setIsEditAdminModalOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Редактировать Администратора</DialogTitle>
+                <DialogDescription>
+                  Измените данные администратора или курьера
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleUpdateAdmin}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-name" className="text-right">
+                      Имя
+                    </Label>
+                    <Input
+                      id="edit-name"
+                      value={editAdminFormData.name}
+                      onChange={(e) => setEditAdminFormData({ ...editAdminFormData, name: e.target.value })}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-email" className="text-right">
+                      Email
+                    </Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editAdminFormData.email}
+                      onChange={(e) => setEditAdminFormData({ ...editAdminFormData, email: e.target.value })}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-password" className="text-right">
+                      Пароль
+                    </Label>
+                    <Input
+                      id="edit-password"
+                      type="password"
+                      placeholder="Оставьте пустым, чтобы не менять"
+                      value={editAdminFormData.password}
+                      onChange={(e) => setEditAdminFormData({ ...editAdminFormData, password: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-role" className="text-right">
+                      Роль
+                    </Label>
+                    <select
+                      id="edit-role"
+                      value={editAdminFormData.role}
+                      onChange={(e) => setEditAdminFormData({ ...editAdminFormData, role: e.target.value })}
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="LOW_ADMIN">Низкий администратор</option>
+                      <option value="COURIER">Курьер</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-active" className="text-right">
+                      Статус
+                    </Label>
+                    <div className="col-span-3 flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-active"
+                        checked={editAdminFormData.isActive}
+                        onCheckedChange={(checked) => setEditAdminFormData({ ...editAdminFormData, isActive: checked as boolean })}
+                      />
+                      <label
+                        htmlFor="edit-active"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Активен
+                      </label>
+                    </div>
+                  </div>
+
+                  {editAdminFormData.role === 'LOW_ADMIN' && (
+                    <div className="grid grid-cols-4 items-start gap-4">
+                      <Label className="text-right pt-2">
+                        Доступ к вкладкам
+                      </Label>
+                      <div className="col-span-3 space-y-2 border rounded-md p-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="tab-orders"
+                            checked={editAdminFormData.allowedTabs.includes('orders')}
+                            onCheckedChange={(checked) => {
+                              const tabs = checked
+                                ? [...editAdminFormData.allowedTabs, 'orders']
+                                : editAdminFormData.allowedTabs.filter(t => t !== 'orders')
+                              setEditAdminFormData({ ...editAdminFormData, allowedTabs: tabs })
+                            }}
+                          />
+                          <label htmlFor="tab-orders" className="text-sm">Заказы</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="tab-clients"
+                            checked={editAdminFormData.allowedTabs.includes('clients')}
+                            onCheckedChange={(checked) => {
+                              const tabs = checked
+                                ? [...editAdminFormData.allowedTabs, 'clients']
+                                : editAdminFormData.allowedTabs.filter(t => t !== 'clients')
+                              setEditAdminFormData({ ...editAdminFormData, allowedTabs: tabs })
+                            }}
+                          />
+                          <label htmlFor="tab-clients" className="text-sm">Клиенты</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="tab-chat"
+                            checked={editAdminFormData.allowedTabs.includes('chat')}
+                            onCheckedChange={(checked) => {
+                              const tabs = checked
+                                ? [...editAdminFormData.allowedTabs, 'chat']
+                                : editAdminFormData.allowedTabs.filter(t => t !== 'chat')
+                              setEditAdminFormData({ ...editAdminFormData, allowedTabs: tabs })
+                            }}
+                          />
+                          <label htmlFor="tab-chat" className="text-sm">Чат</label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsEditAdminModalOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit">
+                    Сохранить
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           {/* Interface Tab */}
           < TabsContent value="interface" className="space-y-6" >
@@ -3626,9 +3702,14 @@ export default function MiddleAdminPage() {
           </TabsContent >
 
           {/* History Tab */}
-          <TabsContent value="history" className="space-y-6">
+          < TabsContent value="history" className="space-y-6" >
             <HistoryTable role="MIDDLE_ADMIN" />
-          </TabsContent>
+          </TabsContent >
+
+          {/* Chat Tab */}
+          < TabsContent value="chat" className="space-y-6" >
+            <ChatTab />
+          </TabsContent >
 
           <TabsContent value="bin" className="space-y-4">
             <Tabs defaultValue="orders" className="w-full">
@@ -3741,7 +3822,7 @@ export default function MiddleAdminPage() {
         </Tabs >
       </main >
       {/* Bulk Edit Orders Modal */}
-      <Dialog open={isBulkEditOrdersModalOpen} onOpenChange={setIsBulkEditOrdersModalOpen}>
+      < Dialog open={isBulkEditOrdersModalOpen} onOpenChange={setIsBulkEditOrdersModalOpen} >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Редактировать выбранные заказы ({selectedOrders.size})</DialogTitle>
@@ -3821,10 +3902,10 @@ export default function MiddleAdminPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Bulk Edit Clients Modal */}
-      <Dialog open={isBulkEditClientsModalOpen} onOpenChange={setIsBulkEditClientsModalOpen}>
+      < Dialog open={isBulkEditClientsModalOpen} onOpenChange={setIsBulkEditClientsModalOpen} >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Редактировать выбранных клиентов ({selectedClients.size})</DialogTitle>
@@ -3879,7 +3960,7 @@ export default function MiddleAdminPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+      </Dialog >
+    </div >
   )
 }

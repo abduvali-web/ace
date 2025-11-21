@@ -80,13 +80,6 @@ export async function DELETE(request: NextRequest) {
           movedTobin++
           console.log(`✅ Moved client ${client.name} to bin`)
 
-          // Remove from global scheduler if it exists
-          const scheduler = (global as any).autoOrderScheduler
-          if (scheduler) {
-            scheduler.removeClient(clientId)
-            console.log(`✅ Removed client ${client.name} from global scheduler`)
-          }
-
         } catch (dbError) {
           console.error(`❌ Error processing client ${clientId}:`, dbError)
         }

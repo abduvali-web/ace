@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// This function should be the same as the one in server.ts but adapted for API route
-// We need to duplicate the logic or extract it to a shared library.
-// Since server.ts is not part of the build, we should move the logic to a shared file.
-// For now, I will inline a simplified version here to ensure it works on Vercel.
-
 function getDayOfWeek(date: Date): string {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     return days[date.getDay()]
@@ -19,30 +14,30 @@ function generateDeliveryTime(): string {
 
 export async function GET(req: Request) {
     try {
-        // Verify cron secret if needed (Vercel handles this automatically for configured crons)
-        // const authHeader = req.headers.get('authorization');
-        // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        //   return new Response('Unauthorized', { status: 401 });
-        // }
+        // Verify cron secret for security
+        const authHeader = req.headers.get('authorization')
+        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+            return new Response('Unauthorized', { status: 401 })
+        }
 
         console.log('🤖 Auto Order Scheduler started via Cron')
 
         const today = new Date()
-        const startDate = new Date(today)
         const endDate = new Date(today)
         endDate.setDate(endDate.getDate() + 30) // Generate for next 30 days
 
-        // Get all active customers (excluding deleted ones)
+        // Get all active customers with auto-orders enabled (excluding deleted ones)
         const customers = await db.customer.findMany({
             where: {
                 isActive: true,
-                deletedAt: null
+                deletedAt: null,
+                autoOrdersEnabled: true
             }
         })
 
         let totalOrdersCreated = 0
 
-        // Get default admin
+        // Get default admin for order attribution
         const defaultAdmin = await db.admin.findFirst({
             where: { role: 'SUPER_ADMIN' }
         })
@@ -52,18 +47,31 @@ export async function GET(req: Request) {
         }
 
         for (const client of customers) {
-            // Parse delivery days or use default
-            // Assuming client.deliveryDays is stored as JSON or we use a default pattern
-            // Ideally we should fetch this from the DB if it was part of the schema
-            // For now, we'll assume daily delivery if not specified
+            // Parse delivery days from database (stored as JSON string)
+            const deliveryDays = (client as any).deliveryDays
+                ? JSON.parse((client as any).deliveryDays)
+                : {
+                    monday: true,
+                    tuesday: true,
+                    wednesday: true,
+                    thursday: true,
+                    friday: true,
+                    saturday: true,
+                    sunday: true
+                }
 
-            const startDate = new Date(today)
-            const endDate = new Date(today)
-            endDate.setDate(endDate.getDate() + 30)
+            // Get calories from database
+            const calories = (client as any).calories || 2000
 
             // Iterate through each day in the next 30 days
-            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            for (let d = new Date(today); d <= endDate; d.setDate(d.getDate() + 1)) {
                 const deliveryDate = new Date(d)
+                const dayOfWeek = getDayOfWeek(deliveryDate)
+
+                // Check if this day is enabled for delivery
+                if (!deliveryDays[dayOfWeek]) {
+                    continue
+                }
 
                 // Check if order already exists for this client and date
                 const existingOrder = await db.order.findFirst({
@@ -77,7 +85,7 @@ export async function GET(req: Request) {
                 })
 
                 if (!existingOrder) {
-                    // Create order
+                    // Create order with client data from database
                     const lastOrder = await db.order.findFirst({
                         orderBy: { orderNumber: 'desc' }
                     })
@@ -89,16 +97,17 @@ export async function GET(req: Request) {
                             customerId: client.id,
                             adminId: defaultAdmin.id,
                             deliveryAddress: client.address,
-                            deliveryDate: new Date(d), // Use the loop date
+                            deliveryDate: new Date(d),
                             deliveryTime: generateDeliveryTime(),
                             quantity: 1,
-                            calories: 2000, // Default or from client
+                            calories: calories,
                             specialFeatures: client.preferences,
                             paymentStatus: 'UNPAID',
                             paymentMethod: 'CASH',
                             isPrepaid: false,
                             orderStatus: 'PENDING',
                             isAutoOrder: true,
+                            courierId: (client as any).defaultCourierId || null
                         }
                     })
                     totalOrdersCreated++
@@ -106,9 +115,14 @@ export async function GET(req: Request) {
             }
         }
 
+        console.log(`✅ Scheduler completed. Created ${totalOrdersCreated} orders.`)
+
         return NextResponse.json({
             success: true,
-            message: `Scheduler completed. Created ${totalOrdersCreated} orders.`
+            message: `Scheduler completed. Created ${totalOrdersCreated} orders.`,
+            ordersCreated: totalOrdersCreated,
+            clientsProcessed: customers.length,
+            timestamp: new Date().toISOString()
         })
     } catch (error) {
         console.error('Scheduler error:', error)

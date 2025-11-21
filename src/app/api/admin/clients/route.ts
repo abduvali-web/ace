@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
           deletedAt: null
         },
         include: {
-          // @ts-ignore
           defaultCourier: {
             select: {
               id: true,
@@ -41,45 +40,36 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' }
       })
 
-      // Get global clients for additional data
-      const globalClients = (global as any).autoOrderScheduler?.getClients() || []
+      // Return clients with all data from database
+      const clients = dbClients.map(dbClient => ({
+        id: dbClient.id,
+        name: dbClient.name,
+        phone: dbClient.phone,
+        address: dbClient.address,
+        calories: (dbClient as any).calories || 2000,
+        specialFeatures: dbClient.preferences || '',
+        deliveryDays: (dbClient as any).deliveryDays ? JSON.parse((dbClient as any).deliveryDays) : {
+          monday: false,
+          tuesday: false,
+          wednesday: false,
+          thursday: false,
+          friday: false,
+          saturday: false,
+          sunday: false
+        },
+        autoOrdersEnabled: (dbClient as any).autoOrdersEnabled !== undefined ? (dbClient as any).autoOrdersEnabled : true,
+        isActive: dbClient.isActive,
+        createdAt: dbClient.createdAt.toISOString(),
+        latitude: dbClient.latitude,
+        longitude: dbClient.longitude,
+        defaultCourierId: (dbClient as any).defaultCourierId,
+        defaultCourierName: (dbClient as any).defaultCourier?.name
+      }))
 
-      // Merge data from database and global storage
-      const mergedClients = dbClients.map(dbClient => {
-        const globalClient = globalClients.find(gc => gc.phone === dbClient.phone)
-        return {
-          id: dbClient.id,
-          name: dbClient.name,
-          phone: dbClient.phone,
-          address: dbClient.address,
-          calories: globalClient?.calories || 2000,
-          specialFeatures: dbClient.preferences || '',
-          deliveryDays: dbClient.orderPattern ? JSON.parse(dbClient.orderPattern) : (globalClient?.deliveryDays || {
-            monday: false,
-            tuesday: false,
-            wednesday: false,
-            thursday: false,
-            friday: false,
-            saturday: false,
-            sunday: false
-          }),
-          autoOrdersEnabled: globalClient?.autoOrdersEnabled !== false,
-          isActive: dbClient.isActive,
-          createdAt: dbClient.createdAt.toISOString(),
-          lastAutoOrderCheck: globalClient?.lastAutoOrderCheck || dbClient.createdAt.toISOString(),
-          latitude: dbClient.latitude,
-          longitude: dbClient.longitude,
-          defaultCourierId: (dbClient as any).defaultCourierId,
-          defaultCourierName: (dbClient as any).defaultCourier?.name
-        }
-      })
-
-      return NextResponse.json(mergedClients)
-    } catch (dbError) {
-      console.error('Database error, falling back to global storage:', dbError)
-      // Fallback to global storage if database fails
-      const clients = (global as any).autoOrderScheduler?.getClients() || []
       return NextResponse.json(clients)
+    } catch (dbError) {
+      console.error('Database error fetching clients:', dbError)
+      return NextResponse.json({ error: 'Ошибка получения данных из базы' }, { status: 500 })
     }
 
   } catch (error) {
@@ -125,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Не все обязательные поля заполнены' }, { status: 400 })
     }
 
-    // Save client to database first
+    // Save client to database
     try {
       const dbClient = await db.customer.create({
         data: {
@@ -142,14 +132,23 @@ export async function POST(request: NextRequest) {
             saturday: false,
             sunday: false
           }),
+          calories: parseInt(calories) || 2000,
+          deliveryDays: JSON.stringify(deliveryDays || {
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+            sunday: false
+          }),
+          autoOrdersEnabled: autoOrdersEnabled !== undefined ? autoOrdersEnabled : true,
           isActive: isActive !== undefined ? isActive : true,
           latitude,
           longitude,
-          // @ts-ignore
           defaultCourierId: body.defaultCourierId || null
         },
         include: {
-          // @ts-ignore
           defaultCourier: {
             select: {
               id: true,
@@ -159,58 +158,28 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Create client object for scheduler with additional fields
+      // Return created client
       const newClient = {
         id: dbClient.id,
         name: dbClient.name,
         phone: dbClient.phone,
         address: dbClient.address,
-        calories: parseInt(calories),
-        specialFeatures: specialFeatures || '',
-        deliveryDays: deliveryDays || {
-          monday: false,
-          tuesday: false,
-          wednesday: false,
-          thursday: false,
-          friday: false,
-          saturday: false,
-          sunday: false
-        },
-        autoOrdersEnabled: autoOrdersEnabled !== undefined ? autoOrdersEnabled : true,
+        calories: (dbClient as any).calories || 2000,
+        specialFeatures: dbClient.preferences || '',
+        deliveryDays: (dbClient as any).deliveryDays ? JSON.parse((dbClient as any).deliveryDays) : {},
+        autoOrdersEnabled: (dbClient as any).autoOrdersEnabled !== undefined ? (dbClient as any).autoOrdersEnabled : true,
         isActive: dbClient.isActive,
         createdAt: dbClient.createdAt.toISOString(),
-        lastAutoOrderCheck: dbClient.createdAt.toISOString()
+        latitude: dbClient.latitude,
+        longitude: dbClient.longitude,
+        defaultCourierId: (dbClient as any).defaultCourierId,
+        defaultCourierName: (dbClient as any).defaultCourier?.name
       }
 
-      // Add client to global server storage (this will also create auto orders)
-      const scheduler = (global as any).autoOrderScheduler
-      if (scheduler) {
-        await scheduler.addClient(newClient)
-
-        // Get updated orders list
-        const orders = scheduler.getOrders()
-
-        // Find orders by customer name and phone (more reliable)
-        const autoOrders = orders.filter(order =>
-          (order.customerName === newClient.name || order.customer?.name === newClient.name) &&
-          (order.customerPhone === newClient.phone || order.customer?.phone === newClient.phone)
-        )
-
-        return NextResponse.json({
-          message: 'Клиент успешно создан',
-          client: newClient,
-          autoOrdersCreated: autoOrders.length,
-          autoOrders: autoOrders
-        })
-      } else {
-        // Fallback if scheduler not available
-        return NextResponse.json({
-          message: 'Клиент успешно создан',
-          client: newClient,
-          autoOrdersCreated: 0,
-          autoOrders: []
-        })
-      }
+      return NextResponse.json({
+        message: 'Клиент успешно создан',
+        client: newClient
+      })
     } catch (dbError: any) {
       console.error('Database error creating client:', dbError)
 

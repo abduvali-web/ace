@@ -56,50 +56,12 @@ export async function POST(request: NextRequest) {
 
                 restoredClients++
                 console.log(`✅ Restored client ${client.name}`)
-
-                // Add back to global scheduler if active
-                const scheduler = (global as any).autoOrderScheduler
-                if (scheduler && client.isActive) {
-                    // Re-add client to scheduler - it will create auto orders
-                    const clientData = {
-                        id: client.id,
-                        name: client.name,
-                        phone: client.phone,
-                        address: client.address,
-                        calories: 2000, // Default, should be fetched from client preferences
-                        specialFeatures: client.preferences || '',
-                        deliveryDays: {
-                            monday: true,
-                            tuesday: true,
-                            wednesday: true,
-                            thursday: true,
-                            friday: true,
-                            saturday: true,
-                            sunday: true
-                        },
-                        autoOrdersEnabled: true,
-                        isActive: client.isActive,
-                        createdAt: client.createdAt.toISOString(),
-                        lastAutoOrderCheck: new Date().toISOString()
-                    }
-
-                    await scheduler.addClient(clientData)
-                    console.log(`✅ Re-added client ${client.name} to scheduler`)
-
-                    // Count newly created orders
-                    const orders = scheduler.getOrders()
-                    const clientOrders = orders.filter((order: any) =>
-                        order.customerPhone === client.phone
-                    )
-                    recreatedOrders += clientOrders.length
-                }
             }
 
             return NextResponse.json({
                 success: true,
                 restoredClients,
-                recreatedOrders,
-                message: `Успешно восстановлено: ${restoredClients} клиентов${recreatedOrders > 0 ? `, создано ${recreatedOrders} заказов` : ''}`
+                message: `Успешно восстановлено: ${restoredClients} клиентов`
             })
 
         } catch (error) {

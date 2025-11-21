@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
+import { db } from '@/lib/db'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
@@ -10,6 +10,17 @@ function verifyToken(token: string) {
   } catch (error) {
     return null
   }
+}
+
+function getDayOfWeek(date: Date): string {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  return days[date.getDay()]
+}
+
+function generateDeliveryTime(): string {
+  const hour = 11 + Math.floor(Math.random() * 3) // 11:00 - 14:00
+  const minute = Math.floor(Math.random() * 60)
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 }
 
 export async function POST(request: NextRequest) {
@@ -30,22 +41,98 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
-    // Run scheduler manually
-    const scheduler = (global as any).autoOrderScheduler
-    if (scheduler && scheduler.runScheduler) {
-      scheduler.runScheduler()
+    console.log('🤖 Auto Order Scheduler started manually by', user.email)
 
-      return NextResponse.json({
-        success: true,
-        message: 'Планировщик авто заказов запущен вручную',
-        timestamp: new Date().toISOString()
-      })
-    } else {
-      return NextResponse.json({
-        success: false,
-        error: 'Планировщик недоступен'
-      }, { status: 500 })
+    const today = new Date()
+    const endDate = new Date(today)
+    endDate.setDate(endDate.getDate() + 30) // Generate for next 30 days
+
+    // Get all active customers with auto-orders enabled
+    const customers = await db.customer.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        autoOrdersEnabled: true
+      }
+    })
+
+    let totalOrdersCreated = 0
+
+    for (const client of customers) {
+      // Parse delivery days from database
+      const deliveryDays = (client as any).deliveryDays
+        ? JSON.parse((client as any).deliveryDays)
+        : {
+          monday: true,
+          tuesday: true,
+          wednesday: true,
+          thursday: true,
+          friday: true,
+          saturday: true,
+          sunday: true
+        }
+
+      // Get calories from database
+      const calories = (client as any).calories || 2000
+
+      // Iterate through each day in the next 30 days
+      for (let d = new Date(today); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const deliveryDate = new Date(d)
+        const dayOfWeek = getDayOfWeek(deliveryDate)
+
+        // Check if this day is enabled for delivery
+        if (!deliveryDays[dayOfWeek]) {
+          continue
+        }
+
+        // Check if order already exists for this client and date
+        const existingOrder = await db.order.findFirst({
+          where: {
+            customerId: client.id,
+            deliveryDate: {
+              gte: new Date(deliveryDate.setHours(0, 0, 0, 0)),
+              lt: new Date(deliveryDate.setHours(23, 59, 59, 999))
+            }
+          }
+        })
+
+        if (!existingOrder) {
+          // Create order
+          const lastOrder = await db.order.findFirst({
+            orderBy: { orderNumber: 'desc' }
+          })
+          const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
+
+          await db.order.create({
+            data: {
+              orderNumber: nextOrderNumber,
+              customerId: client.id,
+              adminId: user.id,
+              deliveryAddress: client.address,
+              deliveryDate: new Date(d),
+              deliveryTime: generateDeliveryTime(),
+              quantity: 1,
+              calories: calories,
+              specialFeatures: client.preferences,
+              paymentStatus: 'UNPAID',
+              paymentMethod: 'CASH',
+              isPrepaid: false,
+              orderStatus: 'PENDING',
+              isAutoOrder: true,
+              courierId: (client as any).defaultCourierId || null
+            }
+          })
+          totalOrdersCreated++
+        }
+      }
     }
+
+    return NextResponse.json({
+      success: true,
+      message: `Планировщик завершен. Создано ${totalOrdersCreated} заказов.`,
+      ordersCreated: totalOrdersCreated,
+      timestamp: new Date().toISOString()
+    })
 
   } catch (error) {
     console.error('Error running scheduler:', error)
@@ -71,53 +158,45 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
-    // Get scheduler status
-    const scheduler = (global as any).autoOrderScheduler
-    if (scheduler) {
-      const clients = scheduler.getClients()
-      const orders = scheduler.getOrders()
+    // Get scheduler status from database
+    const customers = await db.customer.findMany({
+      where: {
+        deletedAt: null
+      }
+    })
 
-      const today = new Date()
-      const eligibleClients = clients.filter(client => {
-        if (!client.isActive || !client.autoOrdersEnabled) return false
+    const activeClients = customers.filter(c => c.isActive && (c as any).autoOrdersEnabled)
 
-        const created = new Date(client.createdAt)
-        const lastCheck = new Date(client.lastAutoOrderCheck || client.createdAt)
-        const daysSinceCreation = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
-        const daysSinceLastCheck = Math.floor((today.getTime() - lastCheck.getTime()) / (1000 * 60 * 60 * 24))
+    const orders = await db.order.findMany({
+      where: {
+        deliveryDate: {
+          gte: new Date()
+        }
+      }
+    })
 
-        return daysSinceCreation >= 30 || daysSinceLastCheck >= 30
-      })
+    const autoOrders = orders.filter(o => o.isAutoOrder)
+    const manualOrders = orders.filter(o => !o.isAutoOrder)
 
-      return NextResponse.json({
-        status: 'Планировщик активен',
-        timestamp: new Date().toISOString(),
-        stats: {
-          totalClients: clients.length,
-          activeClients: clients.filter(c => c.isActive && c.autoOrdersEnabled).length,
-          eligibleClients: eligibleClients.length,
-          totalOrders: orders.length,
-          autoOrders: orders.filter(o => o.isAutoOrder).length,
-          manualOrders: orders.filter(o => !o.isAutoOrder).length
-        },
-        clients: clients.map(client => ({
-          id: client.id,
-          name: client.name,
-          isActive: client.isActive,
-          autoOrdersEnabled: client.autoOrdersEnabled,
-          createdAt: client.createdAt,
-          lastAutoOrderCheck: client.lastAutoOrderCheck,
-          daysSinceCreation: Math.floor((today.getTime() - new Date(client.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
-          daysSinceLastCheck: Math.floor((today.getTime() - new Date(client.lastAutoOrderCheck || client.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
-          isEligible: eligibleClients.some(c => c.id === client.id)
-        }))
-      })
-    } else {
-      return NextResponse.json({
-        status: 'Планировщик недоступен',
-        error: 'Сервер еще не запущен'
-      }, { status: 503 })
-    }
+    return NextResponse.json({
+      status: 'Планировщик активен (Database)',
+      timestamp: new Date().toISOString(),
+      stats: {
+        totalClients: customers.length,
+        activeClients: activeClients.length,
+        totalOrders: orders.length,
+        autoOrders: autoOrders.length,
+        manualOrders: manualOrders.length
+      },
+      clients: customers.map(client => ({
+        id: client.id,
+        name: client.name,
+        isActive: client.isActive,
+        autoOrdersEnabled: (client as any).autoOrdersEnabled || false,
+        calories: (client as any).calories || 2000,
+        createdAt: client.createdAt.toISOString()
+      }))
+    })
 
   } catch (error) {
     console.error('Error getting scheduler status:', error)

@@ -70,22 +70,18 @@ export async function PATCH(
     if (specialFeatures !== undefined) updateData.preferences = specialFeatures
     if (isActive !== undefined) updateData.isActive = isActive
     if (defaultCourierId !== undefined) updateData.defaultCourierId = defaultCourierId || null
+    if (calories !== undefined) updateData.calories = parseInt(calories) || 2000
+    if (autoOrdersEnabled !== undefined) updateData.autoOrdersEnabled = autoOrdersEnabled
 
     if (deliveryDays) {
       updateData.orderPattern = JSON.stringify(deliveryDays)
+      updateData.deliveryDays = JSON.stringify(deliveryDays)
     }
 
     const updatedClient = await db.customer.update({
       where: { id: clientId },
       data: updateData
     })
-
-    // Also update global scheduler if available
-    const scheduler = (global as any).autoOrderScheduler
-    if (scheduler) {
-      // We might need to implement updateClient in scheduler, or just remove and add
-      // For now, we rely on the DB for the next run
-    }
 
     return NextResponse.json({
       message: 'Клиент успешно обновлен',

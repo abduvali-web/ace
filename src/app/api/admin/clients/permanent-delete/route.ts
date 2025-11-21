@@ -52,12 +52,6 @@ export async function DELETE(request: NextRequest) {
                         console.log(`✅ Permanently deleted client ${deletedClient.name}`)
                     }
 
-                    // Remove from global scheduler if exists
-                    const scheduler = (global as any).autoOrderScheduler
-                    if (scheduler) {
-                        scheduler.removeClient(clientId)
-                    }
-
                 } catch (dbError) {
                     console.error(`❌ Error permanently deleting client ${clientId}:`, dbError)
                 }

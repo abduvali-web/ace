@@ -54,19 +54,6 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Also update in global scheduler if available
-    const scheduler = (global as any).autoOrderScheduler
-    if (scheduler && scheduler.getClients) {
-      const globalClients = scheduler.getClients()
-      clientIds.forEach(clientId => {
-        const clientIndex = globalClients.findIndex((c: any) => c.id === clientId)
-        if (clientIndex !== -1) {
-          globalClients[clientIndex].isActive = isActive
-          console.log(`✅ Updated global client ${globalClients[clientIndex].name} status to ${isActive ? 'active' : 'inactive'}`)
-        }
-      })
-    }
-
     return NextResponse.json({
       message: `Статус ${isActive ? 'возобновлен' : 'приостановлен'} для ${updatedCount} клиентов`,
       updatedCount
