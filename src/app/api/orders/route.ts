@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       whereClause.deletedAt = null
     }
 
-    // Data isolation: MIDDLE_ADMIN can only see their own orders and orders from their low admins
+    // Data isolation: Different isolation rules for each role
     if (user.role === 'MIDDLE_ADMIN') {
       // Get all low admins created by this middle admin
       const lowAdmins = await db.admin.findMany({
@@ -44,7 +44,11 @@ export async function GET(request: NextRequest) {
       whereClause.adminId = {
         in: [user.id, ...lowAdminIds]
       }
+    } else if (user.role === 'LOW_ADMIN') {
+      // LOW_ADMIN can only see orders they created themselves
+      whereClause.adminId = user.id
     }
+    // SUPER_ADMIN and COURIER see orders based on other filters (no admin restriction)
 
     const orders = await db.order.findMany({
       where: whereClause,

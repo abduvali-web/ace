@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if user has a password (not OAuth-only user)
+    if (!admin.password || !admin.hasPassword) {
+      return NextResponse.json(
+        { error: 'Этот аккаунт использует вход через Google. Используйте кнопку "Войти через Google"' },
+        { status: 401 }
+      )
+    }
+
     const isPasswordValid = await bcrypt.compare(password, admin.password)
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -47,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: admin.role },
-      JWT_SECRET,
+      JWT_SECRET as string, // Safe: we validate JWT_SECRET exists at module load
       { expiresIn: '24h' }
     )
 

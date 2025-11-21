@@ -5,7 +5,7 @@ import { getAuthUser, hasRole } from '@/lib/auth-utils'
 export async function GET(request: NextRequest) {
     try {
         const user = await getAuthUser(request)
-        if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
+        if (!user || !hasRole(user, ['LOW_ADMIN', 'MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
             return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
         }
 

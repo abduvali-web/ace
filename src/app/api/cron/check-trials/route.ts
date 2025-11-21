@@ -3,10 +3,22 @@ import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
     try {
+        const CRON_SECRET = process.env.CRON_SECRET
+
+        // Validate CRON_SECRET is configured
+        if (!CRON_SECRET) {
+            console.error('[SECURITY] CRON_SECRET not configured!')
+            return NextResponse.json(
+                { error: 'Service misconfigured' },
+                { status: 500 }
+            )
+        }
+
         const authHeader = request.headers.get('authorization')
 
         // Verify CRON_SECRET for security
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        if (authHeader !== `Bearer ${CRON_SECRET}`) {
+            console.warn('[SECURITY] Unauthorized cron access attempt')
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }

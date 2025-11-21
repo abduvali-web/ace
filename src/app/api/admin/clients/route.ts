@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client'
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
-    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
+    if (!user || !hasRole(user, ['LOW_ADMIN', 'MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       deletedAt: null
     }
 
-    // Data isolation: MIDDLE_ADMIN can only see their own clients and clients from their low admins
+    // Data isolation: Different isolation rules for each role
     if (user.role === 'MIDDLE_ADMIN') {
       // Get all low admins created by this middle admin
       const lowAdmins = await db.admin.findMany({
@@ -31,7 +31,11 @@ export async function GET(request: NextRequest) {
       whereClause.createdBy = {
         in: [user.id, ...lowAdminIds]
       }
+    } else if (user.role === 'LOW_ADMIN') {
+      // LOW_ADMIN can only see clients they created themselves
+      whereClause.createdBy = user.id
     }
+    // SUPER_ADMIN sees all clients (no additional filter)
 
     // Get clients from database with isActive status, excluding deleted ones
     const dbClients = await db.customer.findMany({
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
-    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
+    if (!user || !hasRole(user, ['LOW_ADMIN', 'MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 

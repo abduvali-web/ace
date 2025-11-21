@@ -25,6 +25,35 @@ export async function PATCH(
       return NextResponse.json({ error: 'Заказ не найден' }, { status: 404 })
     }
 
+    // Authorization check: Verify user has permission to modify this order
+    if (user.role === 'LOW_ADMIN') {
+      // LOW_ADMIN can only modify their own orders
+      if (order.adminId !== user.id && action !== 'start_delivery') {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    } else if (user.role === 'MIDDLE_ADMIN') {
+      // MIDDLE_ADMIN can modify their orders and their low admins' orders
+      if (action !== 'start_delivery' && action !== 'update_details') {
+        // For courier actions, delegate to courier role check below
+      } else {
+        const lowAdmins = await db.admin.findMany({
+          where: { createdBy: user.id, role: 'LOW_ADMIN' },
+          select: { id: true }
+        })
+        const allowedAdminIds = [user.id, ...lowAdmins.map(a => a.id)]
+
+        if (!allowedAdminIds.includes(order.adminId)) {
+          return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+        }
+      }
+    } else if (user.role === 'COURIER' && action !== 'start_delivery' && action !== 'pause_delivery' && action !== 'resume_delivery' && action !== 'complete_delivery') {
+      // Courier can only perform delivery-related actions on their own orders
+      if (order.courierId !== user.id) {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    }
+    // SUPER_ADMIN can modify all orders (no restriction)
+
     let updateData: any = {}
 
     switch (action) {
@@ -153,6 +182,31 @@ export async function GET(
     if (!order) {
       return NextResponse.json({ error: 'Заказ не найден' }, { status: 404 })
     }
+
+    // Authorization check: Verify user has permission to view this order
+    if (user.role === 'LOW_ADMIN') {
+      // LOW_ADMIN can only view their own orders
+      if (order.adminId !== user.id) {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    } else if (user.role === 'MIDDLE_ADMIN') {
+      // MIDDLE_ADMIN can view their orders and their low admins' orders
+      const lowAdmins = await db.admin.findMany({
+        where: { createdBy: user.id, role: 'LOW_ADMIN' },
+        select: { id: true }
+      })
+      const allowedAdminIds = [user.id, ...lowAdmins.map(a => a.id)]
+
+      if (!allowedAdminIds.includes(order.adminId)) {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    } else if (user.role === 'COURIER') {
+      // Courier can only view orders assigned to them
+      if (order.courierId !== user.id) {
+        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+      }
+    }
+    // SUPER_ADMIN can view all orders (no restriction)
 
     const transformedOrder = {
       ...order,
