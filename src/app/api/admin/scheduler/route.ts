@@ -27,13 +27,19 @@ export async function POST(request: NextRequest) {
     endDate.setDate(endDate.getDate() + 30) // Generate for next 30 days
 
     // Get all active customers with auto-orders enabled
-    const customers = await db.customer.findMany({
+    const customers = await db.customer.findMany(({
       where: {
         isActive: true,
         deletedAt: null,
         autoOrdersEnabled: true
+      },
+      select: {
+        id: true,
+        address: true,
+        preferences: true,
+        createdBy: true
       }
-    })
+    }))
 
     let totalOrdersCreated = 0
 
@@ -82,11 +88,14 @@ export async function POST(request: NextRequest) {
           })
           const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
 
+          // Use client's creator if available, otherwise use current user
+          const adminId = client.createdBy || user.id
+
           await db.order.create({
             data: {
               orderNumber: nextOrderNumber,
               customerId: client.id,
-              adminId: user.id,
+              adminId: adminId,
               deliveryAddress: client.address,
               deliveryDate: new Date(d),
               deliveryTime: generateDeliveryTime(),

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { email, password, name, role } = await request.json()
+    const { email, password, name, role, allowedTabs } = await request.json()
 
     if (!email || !password || !name || !role) {
       return NextResponse.json(
@@ -73,6 +73,22 @@ export async function POST(request: NextRequest) {
     if (!['LOW_ADMIN', 'COURIER'].includes(role)) {
       return NextResponse.json(
         { error: 'Неверная роль' },
+        { status: 400 }
+      )
+    }
+
+    // Validate allowedTabs if provided
+    if (allowedTabs && !Array.isArray(allowedTabs)) {
+      return NextResponse.json(
+        { error: 'allowedTabs должен быть массивом' },
+        { status: 400 }
+      )
+    }
+
+    const validTabs = ['statistics', 'orders', 'clients', 'chat', 'interface', 'history']
+    if (allowedTabs && allowedTabs.some((tab: string) => !validTabs.includes(tab))) {
+      return NextResponse.json(
+        { error: 'Недопустимое значение в allowedTabs' },
         { status: 400 }
       )
     }
@@ -118,7 +134,8 @@ export async function POST(request: NextRequest) {
         name,
         role,
         isActive: true,
-        createdBy: user.id
+        createdBy: user.id,
+        allowedTabs: allowedTabs || null
       }
     })
 

@@ -214,7 +214,8 @@ export default function MiddleAdminPage() {
     name: '',
     email: '',
     password: '',
-    role: 'LOW_ADMIN'
+    role: 'LOW_ADMIN',
+    allowedTabs: [] as string[]
   })
   const [courierFormData, setCourierFormData] = useState({
     name: '',
@@ -522,8 +523,9 @@ export default function MiddleAdminPage() {
 
       if (response.ok) {
         setIsCreateModalOpen(false)
-        setCreateFormData({ name: '', email: '', password: '', role: 'LOW_ADMIN' })
+        setCreateFormData({ name: '', email: '', password: '', role: 'LOW_ADMIN', allowedTabs: [] })
         fetchData()
+        toast.success('Администратор успешно создан')
       } else {
         setCreateError(data.error || 'Ошибка создания администратора')
       }
@@ -3262,6 +3264,74 @@ export default function MiddleAdminPage() {
                               <option value="COURIER">Курьер</option>
                             </select>
                           </div>
+                          {createFormData.role === 'LOW_ADMIN' && (
+                            <div className="col-span-4 space-y-3 border-t pt-4">
+                              <Label className="text-sm font-medium">Разрешенные вкладки</Label>
+                              <p className="text-xs text-muted-foreground">Выберите, какие вкладки будут доступны для этого администратора</p>
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="tab-statistics"
+                                    checked={createFormData.allowedTabs.includes('statistics')}
+                                    onCheckedChange={(checked) => {
+                                      const tabs = checked
+                                        ? [...createFormData.allowedTabs, 'statistics']
+                                        : createFormData.allowedTabs.filter(t => t !== 'statistics')
+                                      setCreateFormData({ ...createFormData, allowedTabs: tabs })
+                                    }}
+                                  />
+                                  <label htmlFor="tab-statistics" className="text-sm cursor-pointer">
+                                    Статистика
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="tab-orders"
+                                    checked={createFormData.allowedTabs.includes('orders')}
+                                    onCheckedChange={(checked) => {
+                                      const tabs = checked
+                                        ? [...createFormData.allowedTabs, 'orders']
+                                        : createFormData.allowedTabs.filter(t => t !== 'orders')
+                                      setCreateFormData({ ...createFormData, allowedTabs: tabs })
+                                    }}
+                                  />
+                                  <label htmlFor="tab-orders" className="text-sm cursor-pointer">
+                                    Заказы
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="tab-clients"
+                                    checked={createFormData.allowedTabs.includes('clients')}
+                                    onCheckedChange={(checked) => {
+                                      const tabs = checked
+                                        ? [...createFormData.allowedTabs, 'clients']
+                                        : createFormData.allowedTabs.filter(t => t !== 'clients')
+                                      setCreateFormData({ ...createFormData, allowedTabs: tabs })
+                                    }}
+                                  />
+                                  <label htmlFor="tab-clients" className="text-sm cursor-pointer">
+                                    Клиенты
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="tab-chat"
+                                    checked={createFormData.allowedTabs.includes('chat')}
+                                    onCheckedChange={(checked) => {
+                                      const tabs = checked
+                                        ? [...createFormData.allowedTabs, 'chat']
+                                        : createFormData.allowedTabs.filter(t => t !== 'chat')
+                                      setCreateFormData({ ...createFormData, allowedTabs: tabs })
+                                    }}
+                                  />
+                                  <label htmlFor="tab-chat" className="text-sm cursor-pointer">
+                                    Чат
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                           {createError && (
                             <div className="col-span-4">
                               <Alert variant="destructive">

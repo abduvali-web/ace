@@ -31,19 +31,19 @@ export async function POST(request: NextRequest) {
             where: {
                 isActive: true,
                 deletedAt: null
+            },
+            select: {
+                id: true,
+                name: true,
+                phone: true,
+                address: true,
+                preferences: true,
+                orderPattern: true,
+                createdBy: true
             }
         })
 
         let totalOrdersCreated = 0
-
-        // Get default admin
-        const defaultAdmin = await db.admin.findFirst({
-            where: { role: 'SUPER_ADMIN' }
-        })
-
-        if (!defaultAdmin) {
-            return NextResponse.json({ error: 'Администратор по умолчанию не найден' }, { status: 500 })
-        }
 
         for (const client of customers) {
             const startDate = new Date(today)
@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
                     console.error('Error parsing orderPattern for client', client.id, e)
                 }
             }
+
+            // Determine the adminId to use:
+            // Use client's creator if available, otherwise use the current user (who triggered the scheduler)
+            const adminId = client.createdBy || user.id
 
             // Iterate through each day in the next 30 days
             for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
                         data: {
                             orderNumber: nextOrderNumber,
                             customerId: client.id,
-                            adminId: defaultAdmin.id,
+                            adminId: adminId,
                             deliveryAddress: client.address,
                             deliveryDate: new Date(d),
                             deliveryTime: generateDeliveryTime(),
