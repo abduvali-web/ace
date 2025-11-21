@@ -24,6 +24,9 @@ model Admin {
   allowedTabs           String?
   googleId              String?        @unique
   hasPassword           Boolean        @default(true)
+  phone                 String?
+  latitude              Float?
+  longitude             Float?
   createdAdmins         Admin[]        @relation("AdminHierarchy")
   creator               Admin?         @relation("AdminHierarchy", fields: [createdBy], references: [id])
   orders                Order[]        @relation("OrderAdmin")

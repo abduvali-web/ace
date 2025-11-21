@@ -1,30 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ adminId: string; adminId2: string }> }
 ) {
   try {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['SUPER_ADMIN'])) {
+      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+    }
+
     const { adminId, adminId2 } = await params
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any
-      if (decoded.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    }
-
     const body = await request.json()
     const { isActive } = body
 
@@ -32,12 +20,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Неверный формат данных' }, { status: 400 })
     }
 
-    // Check if admin exists
-    const adminToUpdate = await db.admin.findUnique({
+    // Ensure the user is modifying the correct admin (adminId should match user.id if we were checking ownership, 
+    // but here it seems adminId is the parent/current admin and adminId2 is the target)
+    // However, since we are SUPER_ADMIN, we can modify any admin.
+
+    // Let's verify the target admin exists
+    const targetAdmin = await db.admin.findUnique({
       where: { id: adminId2 }
     })
 
-    if (!adminToUpdate) {
+    if (!targetAdmin) {
       return NextResponse.json({ error: 'Администратор не найден' }, { status: 404 })
     }
 

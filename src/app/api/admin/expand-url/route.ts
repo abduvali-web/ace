@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
+    const user = await getAuthUser(request)
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const url = searchParams.get('url')
 

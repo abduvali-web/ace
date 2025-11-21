@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is not set in environment')
-}
-
-function verifyRequestToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-  const token = authHeader.substring(7)
-  try { return jwt.verify(token, JWT_SECRET) as any } catch { return null }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 function isEligibleByPattern(orderPattern: string | null | undefined, date: Date) {
   const day = date.getDate()
@@ -27,15 +15,14 @@ function isEligibleByPattern(orderPattern: string | null | undefined, date: Date
   }
 }
 
-function startOfDay(date: Date) { const d = new Date(date); d.setHours(0,0,0,0); return d }
-function endOfDay(date: Date) { const d = new Date(date); d.setHours(23,59,59,999); return d }
-function defaultDeliveryTime(): string { const h=11+Math.floor(Math.random()*3); const m=Math.floor(Math.random()*60); return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}` }
+function startOfDay(date: Date) { const d = new Date(date); d.setHours(0, 0, 0, 0); return d }
+function endOfDay(date: Date) { const d = new Date(date); d.setHours(23, 59, 59, 999); return d }
+function defaultDeliveryTime(): string { const h = 11 + Math.floor(Math.random() * 3); const m = Math.floor(Math.random() * 60); return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}` }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = verifyRequestToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -48,7 +35,7 @@ export async function POST(request: NextRequest) {
     const defaultAdmin = await db.admin.findFirst({ where: { role: 'SUPER_ADMIN' } })
     if (!defaultAdmin) return NextResponse.json({ error: 'Администратор не найден' }, { status: 400 })
 
-    const eligible = customers.filter(c => isEligibleByPattern((c as any).orderPattern, processDate))
+    const eligible = customers.filter(c => isEligibleByPattern(c.orderPattern, processDate))
 
     let created = 0
     const createdOrders: any[] = []
@@ -72,8 +59,8 @@ export async function POST(request: NextRequest) {
           deliveryDate: new Date(dayStart),
           deliveryTime: defaultDeliveryTime(),
           quantity: 1,
-          calories: (c as any).calories ?? 1600,
-          specialFeatures: (c as any).preferences || '',
+          calories: c.calories ?? 1600,
+          specialFeatures: c.preferences || '',
           paymentStatus: 'UNPAID',
           paymentMethod: 'CASH',
           isPrepaid: false,
@@ -101,15 +88,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: `Автоматически создано ${created} заказов`, processedDate: processDate.toDateString(), eligibleClients: eligible.length, createdOrders: createdOrders.length, orders: createdOrders })
   } catch (error: any) {
     console.error('Error creating auto orders:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const user = verifyRequestToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -129,7 +118,7 @@ export async function GET(request: NextRequest) {
     tomorrow.setDate(tomorrow.getDate() + 1)
 
     const customers = await db.customer.findMany({ where: { isActive: true }, select: { id: true, name: true, phone: true, orderPattern: true } })
-    const tomorrowEligible = customers.filter(c => isEligibleByPattern((c as any).orderPattern, tomorrow))
+    const tomorrowEligible = customers.filter(c => isEligibleByPattern(c.orderPattern, tomorrow))
 
     return NextResponse.json({
       todayStats: {
@@ -141,6 +130,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error getting auto orders stats:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }

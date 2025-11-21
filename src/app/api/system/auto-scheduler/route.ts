@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
-function verifyRequestToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-  const token = authHeader.substring(7)
-  try { return jwt.verify(token, JWT_SECRET) as any } catch { return null }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 function isEligibleByPattern(orderPattern: string | null | undefined, date: Date) {
   const day = date.getDate()
@@ -24,85 +15,113 @@ function isEligibleByPattern(orderPattern: string | null | undefined, date: Date
   }
 }
 
-function startOfDay(date: Date) { const d = new Date(date); d.setHours(0,0,0,0); return d }
-function endOfDay(date: Date) { const d = new Date(date); d.setHours(23,59,59,999); return d }
-function defaultDeliveryTime(): string { const h=11+Math.floor(Math.random()*3); const m=Math.floor(Math.random()*60); return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}` }
+function startOfDay(date: Date) { const d = new Date(date); d.setHours(0, 0, 0, 0); return d }
+function endOfDay(date: Date) { const d = new Date(date); d.setHours(23, 59, 59, 999); return d }
+function defaultDeliveryTime(): string { const h = 11 + Math.floor(Math.random() * 3); const m = Math.floor(Math.random() * 60); return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ` }
 
 export async function GET(request: NextRequest) {
   try {
-    const user = verifyRequestToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+    const user = await getAuthUser(request)
+
+    // Check for cron token or admin request
+    const cronToken = request.headers.get('X-Cron-Token')
+    const isCronRequest = cronToken === process.env.CRON_SECRET_TOKEN
+
+    if (!isCronRequest) {
+      if (!user || !hasRole(user, ['SUPER_ADMIN', 'MIDDLE_ADMIN'])) {
+        return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 })
+      }
     }
 
-    const today = new Date()
-    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
-    const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+    const { searchParams } = new URL(request.url)
+    const dateParam = searchParams.get('date')
+    const processDate = dateParam ? new Date(dateParam) : new Date()
 
-    const customers = await db.customer.findMany({ where: { isActive: true }, select: { id:true, name:true, phone:true, address:true, orderPattern:true, preferences:true } })
+    // If it's a cron request, we might want to process for tomorrow if it's late in the day
+    // But for now let's stick to the requested date or today
+
+    const dayStart = startOfDay(processDate)
+    const dayEnd = endOfDay(processDate)
+
+    const customers = await db.customer.findMany({ where: { isActive: true } })
     const defaultAdmin = await db.admin.findFirst({ where: { role: 'SUPER_ADMIN' } })
-    if (!defaultAdmin) return NextResponse.json({ error: 'Администратор не найден' }, { status: 400 })
 
-    let totalOrdersCreated = 0
-    const details: any[] = []
+    // If no super admin, try to find any admin or use a system ID if possible (but schema likely requires valid adminId)
+    // For now, fail if no admin found
+    if (!defaultAdmin) {
+      console.error('No SUPER_ADMIN found for auto-scheduler')
+      return NextResponse.json({ error: 'System configuration error' }, { status: 500 })
+    }
 
-    for (const c of customers) {
-      let createdForClient = 0
-      const dates: string[] = []
+    const eligible = customers.filter(c => isEligibleByPattern(c.orderPattern, processDate))
 
-      const current = new Date(nextMonthStart)
-      while (current <= nextMonthEnd) {
-        if (isEligibleByPattern((c as any).orderPattern, current)) {
-          const s = startOfDay(current)
-          const e = endOfDay(current)
-          const exists = await db.order.findFirst({ where: { customerId: c.id, deliveryDate: { gte: s, lte: e } }, select: { id: true } })
-          if (!exists) {
-            const last = await db.order.findFirst({ orderBy: { orderNumber: 'desc' }, select: { orderNumber: true } })
-            const nextOrderNumber = last ? last.orderNumber + 1 : 1
-            await db.order.create({
-              data: {
-                orderNumber: nextOrderNumber,
-                customerId: c.id,
-                adminId: defaultAdmin.id,
-                deliveryAddress: c.address!,
-                deliveryDate: new Date(s),
-                deliveryTime: defaultDeliveryTime(),
-                quantity: 1,
-                calories: 1600,
-                specialFeatures: (c as any).preferences || '',
-                paymentStatus: 'UNPAID',
-                paymentMethod: 'CASH',
-                isPrepaid: false,
-                orderStatus: 'PENDING'
-              }
-            })
-            createdForClient++
-            totalOrdersCreated++
-            dates.push(s.toISOString().split('T')[0])
-          }
-        }
-        current.setDate(current.getDate() + 1)
-      }
+    let created = 0
+    const createdOrders: any[] = []
 
-      details.push({ clientId: c.id, clientName: c.name, ordersCreated: createdForClient, deliveryDates: dates })
+    for (const c of eligible) {
+      // Check if order already exists for this date
+      const existing = await db.order.findFirst({
+        where: { customerId: c.id, deliveryDate: { gte: dayStart, lte: dayEnd } },
+        select: { id: true }
+      })
+      if (existing) continue
+
+      const lastOrder = await db.order.findFirst({ orderBy: { orderNumber: 'desc' }, select: { orderNumber: true } })
+      const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
+
+      const createdOrder = await db.order.create({
+        data: {
+          orderNumber: nextOrderNumber,
+          customerId: c.id,
+          adminId: defaultAdmin.id,
+          deliveryAddress: c.address,
+          deliveryDate: new Date(dayStart),
+          deliveryTime: defaultDeliveryTime(),
+          quantity: 1,
+          calories: c.calories ?? 1600,
+          specialFeatures: c.preferences || '',
+          paymentStatus: 'UNPAID',
+          paymentMethod: 'CASH',
+          isPrepaid: false,
+          orderStatus: 'PENDING',
+        },
+        include: { customer: { select: { name: true, phone: true } } }
+      })
+
+      created++
+      createdOrders.push({
+        id: createdOrder.id,
+        customerName: createdOrder.customer?.name,
+        customerPhone: createdOrder.customer?.phone,
+        deliveryAddress: createdOrder.deliveryAddress,
+        deliveryDate: createdOrder.deliveryDate?.toISOString().split('T')[0],
+        deliveryTime: createdOrder.deliveryTime,
+        calories: createdOrder.calories,
+        paymentStatus: createdOrder.paymentStatus,
+        orderStatus: createdOrder.orderStatus,
+        isAutoOrder: true,
+        createdAt: createdOrder.createdAt
+      })
     }
 
     return NextResponse.json({
-      success: true,
-      message: `Автоматически создано ${totalOrdersCreated} заказов на следующий месяц для ${customers.length} активных клиентов`,
-      summary: {
-        period: `${nextMonthStart.toISOString().split('T')[0]} - ${nextMonthEnd.toISOString().split('T')[0]}`,
-        totalActiveClients: customers.length,
-        totalOrdersCreated,
-        timestamp: new Date().toISOString()
-      },
-      details
+      message: `Автоматически создано ${created} заказов`,
+      processedDate: processDate.toDateString(),
+      eligibleClients: eligible.length,
+      createdOrders: createdOrders.length,
+      orders: createdOrders,
+      isCronRequest
     })
+
   } catch (error: any) {
-    console.error('Scheduler error:', error)
-    return NextResponse.json({ success: false, error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    console.error('Error in auto-scheduler:', error)
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
-export async function POST(request: NextRequest) { return GET(request) }
+export async function POST(request: NextRequest) {
+  return GET(request)
+}

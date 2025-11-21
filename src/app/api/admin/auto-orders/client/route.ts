@@ -1,33 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-async function verifyToken(token: string) {
-  try {
-    if (!token) return null
-    
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
-    
-    // Get user from database
-    const user = await db.admin.findUnique({
-      where: { id: decoded.id }
-    })
-    
-    if (!user || !user.isActive) {
-      return null
-    }
-    
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role
-    }
-  } catch (error) {
-    console.error('Token verification error:', error)
-    return null
-  }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 // Function to get day of week in Russian
 function getDayOfWeek(date: Date): string {
@@ -39,10 +12,10 @@ function getDayOfWeek(date: Date): string {
 async function orderExistsForDate(clientId: string, targetDate: Date): Promise<boolean> {
   const compareDate = new Date(targetDate)
   compareDate.setHours(0, 0, 0, 0)
-  
+
   const nextDay = new Date(compareDate)
   nextDay.setDate(nextDay.getDate() + 1)
-  
+
   const existingOrder = await db.order.findFirst({
     where: {
       customerId: clientId,
@@ -52,7 +25,7 @@ async function orderExistsForDate(clientId: string, targetDate: Date): Promise<b
       }
     }
   })
-  
+
   return !!existingOrder
 }
 
@@ -61,28 +34,28 @@ function generateDeliveryTime(): string {
   const now = new Date()
   const deliveryHour = 11 + Math.floor(Math.random() * 3) // 11:00 - 14:00
   const deliveryMinute = Math.floor(Math.random() * 60)
-  
+
   now.setHours(deliveryHour, deliveryMinute, 0, 0)
   return now.toTimeString().slice(0, 5)
 }
 
 // Function to create auto orders for a client for specified date range
-async function createAutoOrdersForClient(client: any, startDate: Date, endDate: Date): Promise<any[]> {
-  const createdOrders = []
+async function createAutoOrdersForClient(client: any, startDate: Date, endDate: Date, adminId: string): Promise<any[]> {
+  const createdOrders: any[] = []
   const currentDate = new Date(startDate)
-  
+
   // Get the next order number
   const lastOrder = await db.order.findFirst({
     orderBy: {
       orderNumber: 'desc'
     }
   })
-  
+
   let nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
-  
+
   while (currentDate <= endDate) {
     const dayOfWeek = getDayOfWeek(currentDate)
-    
+
     // Check if client should receive order on this day
     if (client.deliveryDays[dayOfWeek] && !(await orderExistsForDate(client.id, currentDate))) {
       try {
@@ -90,11 +63,12 @@ async function createAutoOrdersForClient(client: any, startDate: Date, endDate: 
           data: {
             orderNumber: nextOrderNumber++,
             customerId: client.id,
+            adminId: adminId,
             deliveryAddress: client.address,
             deliveryTime: generateDeliveryTime(),
             quantity: 1,
             calories: client.calories,
-            specialFeatures: client.specialFeatures,
+            specialFeatures: client.preferences,
             paymentStatus: 'UNPAID',
             paymentMethod: 'CASH',
             orderStatus: 'PENDING',
@@ -133,24 +107,18 @@ async function createAutoOrdersForClient(client: any, startDate: Date, endDate: 
         console.error(`Error creating order for ${client.name} on ${currentDate.toDateString()}:`, error)
       }
     }
-    
+
     // Move to next day
     currentDate.setDate(currentDate.getDate() + 1)
   }
-  
+
   return createdOrders
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    const user = await verifyToken(token || '')
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-    
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -170,19 +138,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Клиент не найден' }, { status: 404 })
     }
 
-    // Check if client has auto orders enabled (stored in specialFeatures as JSON)
-    let clientSettings = { autoOrdersEnabled: true, deliveryDays: {} }
-    try {
-      if (client.specialFeatures) {
-        const parsed = JSON.parse(client.specialFeatures)
-        clientSettings = { ...clientSettings, ...parsed }
-      }
-    } catch (e) {
-      console.error('Error parsing client special features:', e)
+    if (!client.autoOrdersEnabled) {
+      return NextResponse.json({ error: 'Автоматические заказы отключены для этого клиента' }, { status: 400 })
     }
 
-    if (!clientSettings.autoOrdersEnabled) {
-      return NextResponse.json({ error: 'Автоматические заказы отключены для этого клиента' }, { status: 400 })
+    // Parse delivery days
+    let deliveryDays = {}
+    try {
+      if (client.deliveryDays) {
+        deliveryDays = JSON.parse(client.deliveryDays)
+      }
+    } catch (e) {
+      console.error('Error parsing client delivery days:', e)
     }
 
     // Calculate date range (next 30 days from today)
@@ -194,14 +161,13 @@ export async function POST(request: NextRequest) {
 
     // Create orders for the client
     const createdOrders = await createAutoOrdersForClient(
-      { 
-        ...client, 
-        deliveryDays: clientSettings.deliveryDays || {},
-        calories: clientSettings.calories || 1200,
-        specialFeatures: clientSettings.specialFeatures || ''
-      }, 
-      startDate, 
-      endDate
+      {
+        ...client,
+        deliveryDays: deliveryDays,
+      },
+      startDate,
+      endDate,
+      user.id
     )
 
     console.log(`Created ${createdOrders.length} auto orders for client: ${client.name}`)
@@ -220,20 +186,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating auto orders for client:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    const user = await verifyToken(token || '')
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-    
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -251,40 +214,38 @@ export async function GET(request: NextRequest) {
     })
 
     // Get statistics for each client with auto orders enabled
-    const clientStats = []
-    
-    for (const client of clients) {
-      let clientSettings = { autoOrdersEnabled: false, deliveryDays: {}, calories: 1200 }
-      try {
-        if (client.specialFeatures) {
-          const parsed = JSON.parse(client.specialFeatures)
-          clientSettings = { ...clientSettings, ...parsed }
-        }
-      } catch (e) {
-        console.error('Error parsing client special features:', e)
-      }
+    const clientStats: any[] = []
 
-      if (clientSettings.autoOrdersEnabled) {
+    for (const client of clients) {
+      if (client.autoOrdersEnabled) {
+        let deliveryDays = {}
+        try {
+          if (client.deliveryDays) {
+            deliveryDays = JSON.parse(client.deliveryDays)
+          }
+        } catch (e) {
+          console.error('Error parsing client delivery days:', e)
+        }
+
         const today = new Date()
         const endDate = new Date()
         endDate.setDate(endDate.getDate() + 30)
-        
+
         const clientOrders = await createAutoOrdersForClient(
-          { 
-            ...client, 
-            deliveryDays: clientSettings.deliveryDays || {},
-            calories: clientSettings.calories || 1200,
-            specialFeatures: clientSettings.specialFeatures || ''
-          }, 
-          today, 
-          endDate
+          {
+            ...client,
+            deliveryDays: deliveryDays,
+          },
+          today,
+          endDate,
+          user.id
         )
-        
+
         clientStats.push({
           clientId: client.id,
           clientName: client.name,
           clientPhone: client.phone,
-          deliveryDays: clientSettings.deliveryDays,
+          deliveryDays: deliveryDays,
           estimatedOrders: clientOrders.length,
           nextDeliveryDate: clientOrders.length > 0 ? clientOrders[0].deliveryDate : null
         })
@@ -301,6 +262,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error getting auto orders forecast:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }

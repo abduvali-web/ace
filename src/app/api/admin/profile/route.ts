@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
+import { getAuthUser } from '@/lib/auth-utils'
 import { hash } from 'bcryptjs'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
 
 export async function PATCH(request: NextRequest) {
     try {
-        const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-        if (!token) {
+        const user = await getAuthUser(request)
+        if (!user) {
             return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-        }
-
-        let decoded: any
-        try {
-            decoded = jwt.verify(token, JWT_SECRET)
-        } catch (error) {
-            return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
         }
 
         const body = await request.json()
@@ -32,7 +22,7 @@ export async function PATCH(request: NextRequest) {
             where: {
                 email,
                 NOT: {
-                    id: decoded.id
+                    id: user.id
                 }
             }
         })
@@ -51,17 +41,17 @@ export async function PATCH(request: NextRequest) {
         }
 
         const updatedAdmin = await db.admin.update({
-            where: { id: decoded.id },
+            where: { id: user.id },
             data: updateData
         })
 
         // Log action
         await db.actionLog.create({
             data: {
-                adminId: decoded.id,
+                adminId: user.id,
                 action: 'UPDATE_PROFILE',
                 entityType: 'ADMIN',
-                entityId: decoded.id,
+                entityId: user.id,
                 description: `Updated profile for ${updatedAdmin.name}`
             }
         })
