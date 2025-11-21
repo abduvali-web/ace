@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 export async function DELETE(
   request: NextRequest,
@@ -10,19 +8,10 @@ export async function DELETE(
 ) {
   try {
     const { adminId, adminId2 } = await params
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    const user = await getAuthUser(request)
 
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any
-      if (decoded.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
+    if (!user || !hasRole(user, ['SUPER_ADMIN'])) {
+      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     // Check if admin exists
@@ -35,7 +24,7 @@ export async function DELETE(
     }
 
     // Prevent deleting yourself
-    if (adminId === adminId2) {
+    if (user.id === adminId2) {
       return NextResponse.json({ error: 'Нельзя удалить самого себя' }, { status: 400 })
     }
 
@@ -47,7 +36,7 @@ export async function DELETE(
     // Log action
     await db.actionLog.create({
       data: {
-        adminId: adminId,
+        adminId: user.id,
         action: 'DELETE_ADMIN',
         entityType: 'ADMIN',
         entityId: adminId2,
