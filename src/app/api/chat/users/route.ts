@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
-
-function verifyToken(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-    const token = authHeader.substring(7)
-    try {
-        return jwt.verify(token, JWT_SECRET) as any
-    } catch {
-        return null
-    }
-}
+import { getAuthUser } from '@/lib/auth-utils'
 
 // GET - Get list of users current user can chat with based on role
 export async function GET(request: NextRequest) {
     try {
-        const user = verifyToken(request)
+        const user = await getAuthUser(request)
         if (!user) {
             return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
         }
@@ -56,14 +43,32 @@ export async function GET(request: NextRequest) {
                 }
             })
         } else if (currentUser.role === 'MIDDLE_ADMIN') {
-            // Middle admin can chat with couriers and low admins they created
-            availableUsers = await db.admin.findMany({
+            // Middle admin can chat with:
+            // 1. The super admin (creator)
+            // 2. Couriers and low admins they created
+
+            // Get super admins
+            const superAdmins = await db.admin.findMany({
+                where: {
+                    role: 'SUPER_ADMIN',
+                    isActive: true
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true
+                }
+            })
+
+            // Get created users
+            const createdUsers = await db.admin.findMany({
                 where: {
                     id: {
                         not: user.id
                     },
                     isActive: true,
-                    createdById: user.id,
+                    createdBy: user.id,
                     role: {
                         in: ['COURIER', 'LOW_ADMIN']
                     }
@@ -78,12 +83,14 @@ export async function GET(request: NextRequest) {
                     name: 'asc'
                 }
             })
+
+            availableUsers = [...superAdmins, ...createdUsers]
         } else if (currentUser.role === 'COURIER' || currentUser.role === 'LOW_ADMIN') {
             // Couriers/Low admins can chat with:
             // 1. Their creator middle admin
             // 2. Other couriers/low admins created by the same middle admin
 
-            const creatorId = currentUser.createdById
+            const creatorId = currentUser.createdBy
 
             if (creatorId) {
                 // Get creator
@@ -108,7 +115,7 @@ export async function GET(request: NextRequest) {
                             not: user.id
                         },
                         isActive: true,
-                        createdById: creatorId,
+                        createdBy: creatorId,
                         role: {
                             in: ['COURIER', 'LOW_ADMIN']
                         }
@@ -131,7 +138,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ users: availableUsers })
 
     } catch (error) {
-        console.error('Error fetching  available users:', error)
+        console.error('Error fetching available users:', error)
         return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
     }
 }
