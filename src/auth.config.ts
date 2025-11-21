@@ -23,8 +23,8 @@ export default {
             const isOnHomePage = nextUrl.pathname === '/'
             const isOnSignup = nextUrl.pathname === '/signup'
 
-            // Allow everyone to access home page and signup page
-            if (isOnHomePage || isOnSignup) {
+            // Allow everyone to access home page, signup page, and login page (when not logged in)
+            if (isOnHomePage || isOnSignup || (isOnLogin && !isLoggedIn)) {
                 return true
             }
 
