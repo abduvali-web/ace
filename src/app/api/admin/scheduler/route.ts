@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
-function verifyToken(token: string) {
-  try {
-    return jwt.verify(token, JWT_SECRET) as any
-  } catch (error) {
-    return null
-  }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 function getDayOfWeek(date: Date): string {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -25,19 +15,8 @@ function generateDeliveryTime(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
-
-    if (!user) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    }
-
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -136,25 +115,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error running scheduler:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
-
-    if (!user) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    }
-
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -200,6 +171,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error getting scheduler status:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }

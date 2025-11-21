@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
-
-function verifyToken(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-    const token = authHeader.substring(7)
-    try {
-        return jwt.verify(token, JWT_SECRET) as any
-    } catch {
-        return null
-    }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
+import { passwordSchema } from '@/lib/validations'
+import { z } from 'zod'
 
 // PATCH - Update admin
 export async function PATCH(
@@ -22,12 +11,12 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const user = verifyToken(request)
-        if (!user || (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        const user = await getAuthUser(request)
+        if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
             return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 })
         }
 
-        const { id } = params
+        const { id } = await params
         const data = await request.json()
 
         // Verify target admin exists and user has permission to edit them
@@ -53,6 +42,14 @@ export async function PATCH(
         if (data.allowedTabs) updateData.allowedTabs = JSON.stringify(data.allowedTabs)
 
         if (data.password) {
+            // Validate password strength
+            try {
+                passwordSchema.parse(data.password)
+            } catch (error) {
+                if (error instanceof z.ZodError) {
+                    return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
+                }
+            }
             updateData.password = await bcrypt.hash(data.password, 10)
             updateData.hasPassword = true
         }
@@ -89,7 +86,10 @@ export async function PATCH(
 
     } catch (error) {
         console.error('Error updating admin:', error)
-        return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+        return NextResponse.json({
+            error: 'Внутренняя ошибка сервера',
+            ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+        }, { status: 500 })
     }
 }
 
@@ -99,12 +99,12 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const user = verifyToken(request)
-        if (!user || (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        const user = await getAuthUser(request)
+        if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
             return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 })
         }
 
-        const { id } = params
+        const { id } = await params
 
         // Verify target admin exists and user has permission to delete them
         const targetAdmin = await db.admin.findUnique({
@@ -139,6 +139,9 @@ export async function DELETE(
 
     } catch (error) {
         console.error('Error deleting admin:', error)
-        return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+        return NextResponse.json({
+            error: 'Внутренняя ошибка сервера',
+            ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+        }, { status: 500 })
     }
 }
