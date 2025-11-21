@@ -9,8 +9,8 @@ export default {
         })
     ],
     pages: {
-        signIn: "/",
-        error: "/",
+        signIn: "/login",
+        error: "/login",
     },
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
@@ -19,6 +19,24 @@ export default {
                 nextUrl.pathname.startsWith('/super-admin') ||
                 nextUrl.pathname.startsWith('/low-admin') ||
                 nextUrl.pathname.startsWith('/courier')
+            const isOnLogin = nextUrl.pathname === '/login' || nextUrl.pathname === '/'
+
+            // If logged in and trying to access login page, redirect to dashboard
+            if (isLoggedIn && isOnLogin) {
+                const role = (auth.user as any).role
+                switch (role) {
+                    case 'SUPER_ADMIN':
+                        return Response.redirect(new URL('/super-admin', nextUrl))
+                    case 'MIDDLE_ADMIN':
+                        return Response.redirect(new URL('/middle-admin', nextUrl))
+                    case 'LOW_ADMIN':
+                        return Response.redirect(new URL('/low-admin', nextUrl))
+                    case 'COURIER':
+                        return Response.redirect(new URL('/courier', nextUrl))
+                    default:
+                        return Response.redirect(new URL('/middle-admin', nextUrl))
+                }
+            }
 
             if (isOnDashboard) {
                 if (isLoggedIn) return true
