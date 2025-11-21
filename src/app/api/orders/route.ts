@@ -28,6 +28,24 @@ export async function GET(request: NextRequest) {
       whereClause.deletedAt = null
     }
 
+    // Data isolation: MIDDLE_ADMIN can only see their own orders and orders from their low admins
+    if (user.role === 'MIDDLE_ADMIN') {
+      // Get all low admins created by this middle admin
+      const lowAdmins = await db.admin.findMany({
+        where: {
+          createdBy: user.id,
+          role: 'LOW_ADMIN'
+        },
+        select: { id: true }
+      })
+      const lowAdminIds = lowAdmins.map(admin => admin.id)
+
+      // Filter orders: only those created by this middle admin or their low admins
+      whereClause.adminId = {
+        in: [user.id, ...lowAdminIds]
+      }
+    }
+
     const orders = await db.order.findMany({
       where: whereClause,
       include: {

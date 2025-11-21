@@ -6,6 +6,46 @@ import { passwordSchema, emailSchema } from '@/lib/validations'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
+      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+    }
+
+    const whereClause: any = {
+      role: 'COURIER',
+      isActive: true
+    }
+
+    // Data isolation: MIDDLE_ADMIN can only see couriers they created
+    if (user.role === 'MIDDLE_ADMIN') {
+      whereClause.createdBy = user.id
+    }
+
+    const couriers = await db.admin.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return NextResponse.json(couriers)
+  } catch (error) {
+    console.error('Error fetching couriers:', error)
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request)

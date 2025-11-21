@@ -20,13 +20,18 @@ import {
   Navigation,
   AlertCircle,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  User,
+  MessageSquare
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { CourierProfile } from '@/components/courier/CourierProfile'
+import { ChatTab } from '@/components/chat/ChatTab'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet"
 
 // Dynamically import Map component to avoid SSR issues with Leaflet
 const CourierMap = dynamic(() => import('@/components/courier/CourierMap'), {
@@ -57,26 +62,39 @@ export default function CourierPage() {
   const { t } = useLanguage()
   const [orders, setOrders] = useState<Order[]>([])
   const [historyOrders, setHistoryOrders] = useState<Order[]>([])
-  const [currentOrderIndex, setCurrentOrderIndex] = useState(0)
-  const [isOrderOpen, setIsOrderOpen] = useState(false)
-  const [isOrderPaused, setIsOrderPaused] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | undefined>(undefined)
+  const [activeTab, setActiveTab] = useState('orders')
+  const [courierData, setCourierData] = useState<any>(null)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [isOrderOpen, setIsOrderOpen] = useState(false)
+  const [isOrderPaused, setIsOrderPaused] = useState(false)
 
   useEffect(() => {
-    // Fetch data on initial load
-    // Authentication is handled by NextAuth middleware
+    // Check authentication and load courier data
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setCourierData(user)
+      } catch (e) {
+        console.error("Failed to parse user data from localStorage", e)
+      }
+    }
+
     fetchOrders()
     getCurrentLocation()
 
-    // Polling for updates every 15 seconds
-    const intervalId = setInterval(() => {
-      fetchOrders(true)
-      getCurrentLocation()
-    }, 15000)
+    // Refresh location every 30 seconds
+    const locationInterval = setInterval(getCurrentLocation, 30000)
+    // Refresh orders every minute
+    const ordersInterval = setInterval(() => fetchOrders(true), 60000)
 
-    return () => clearInterval(intervalId)
+    return () => {
+      clearInterval(locationInterval)
+      clearInterval(ordersInterval)
+    }
   }, [])
 
   const getCurrentLocation = () => {
@@ -90,12 +108,15 @@ export default function CourierPage() {
         },
         (error) => {
           console.error('Error getting location:', error)
+          // Default to Tashkent center if location access denied
+          if (!currentLocation) {
+            setCurrentLocation({ lat: 41.2995, lng: 69.2401 })
+          }
         }
       )
     }
   }
 
-  // Haversine formula to calculate distance between two points in km
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371 // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1)
@@ -114,122 +135,83 @@ export default function CourierPage() {
   }
 
   const fetchOrders = async (background = false) => {
-    if (!background) setIsLoading(true)
+    if (!background) setLoading(true)
     else setIsRefreshing(true)
 
     try {
-      const response = await fetch('/api/orders', {
-        headers: {
-        }
-      })
+      const response = await fetch('/api/orders')
+
+      if (response.status === 401) {
+        window.location.href = '/login'
+        return
+      }
 
       if (response.ok) {
         const ordersData = await response.json()
 
-        // Filter active orders
-        const availableOrders = ordersData.filter((order: Order) =>
+        const activeAndPendingOrders = ordersData.filter((order: Order) =>
           order.orderStatus === 'PENDING' || order.orderStatus === 'IN_DELIVERY' || order.orderStatus === 'PAUSED'
         )
-        setOrders(availableOrders)
+        setOrders(activeAndPendingOrders)
 
-        // Filter history orders
-        const completedOrders = ordersData.filter((order: Order) =>
+        const completedAndFailedOrders = ordersData.filter((order: Order) =>
           order.orderStatus === 'DELIVERED' || order.orderStatus === 'FAILED'
         )
-        setHistoryOrders(completedOrders)
+        setHistoryOrders(completedAndFailedOrders)
 
-        // Check if any order is currently active/paused to set initial state
-        const activeOrderIndex = availableOrders.findIndex((o: Order) =>
-          o.orderStatus === 'IN_DELIVERY' || o.orderStatus === 'PAUSED'
-        )
-
-        if (activeOrderIndex !== -1) {
-          setCurrentOrderIndex(activeOrderIndex)
-          setIsOrderOpen(true)
-          setIsOrderPaused(availableOrders[activeOrderIndex].orderStatus === 'PAUSED')
+        if (selectedOrder) {
+          const updatedSelectedOrder = activeAndPendingOrders.find((o: Order) => o.id === selectedOrder.id)
+          if (updatedSelectedOrder) {
+            setSelectedOrder(updatedSelectedOrder)
+            setIsOrderPaused(updatedSelectedOrder.orderStatus === 'PAUSED')
+          } else {
+            setSelectedOrder(null)
+            setIsOrderOpen(false)
+          }
         }
       }
     } catch (error) {
       console.error('Error fetching orders:', error)
       if (!background) toast.error(t.common.error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
       setIsRefreshing(false)
     }
   }
 
-  const currentOrder = orders[currentOrderIndex]
-
-  const handleNextOrder = () => {
-    if (currentOrderIndex < orders.length - 1) {
-      setCurrentOrderIndex(prev => prev + 1)
-    }
+  const handleOpenOrder = (order: Order) => {
+    setSelectedOrder(order)
+    setIsOrderOpen(true)
+    setIsOrderPaused(order.orderStatus === 'PAUSED')
   }
 
-  const handlePrevOrder = () => {
-    if (currentOrderIndex > 0) {
-      setCurrentOrderIndex(prev => prev - 1)
-    }
+  const handleCloseOrderDetailSheet = () => {
+    setIsOrderOpen(false)
+    setSelectedOrder(null)
   }
 
-  const handleOpenOrder = async () => {
-    // Smart Routing Logic
-    let targetOrder = currentOrder
-    let targetIndex = currentOrderIndex
-
-    if (currentLocation && orders.length > 0) {
-      // Find nearest pending order
-      let minDistance = Infinity
-      let nearestIndex = -1
-
-      orders.forEach((order, index) => {
-        if (order.orderStatus === 'PENDING' || order.orderStatus === 'PAUSED') {
-          // Use default coordinates if missing (fallback to Tashkent center)
-          const orderLat = order.latitude || 41.2995
-          const orderLng = order.longitude || 69.2401
-
-          const dist = calculateDistance(
-            currentLocation.lat,
-            currentLocation.lng,
-            orderLat,
-            orderLng
-          )
-
-          if (dist < minDistance) {
-            minDistance = dist
-            nearestIndex = index
-          }
-        }
-      })
-
-      if (nearestIndex !== -1 && nearestIndex !== currentOrderIndex) {
-        targetOrder = orders[nearestIndex]
-        targetIndex = nearestIndex
-        setCurrentOrderIndex(nearestIndex)
-        toast.info(`Optimized route: Switched to nearest order (${minDistance.toFixed(1)} km)`)
-      }
-    }
-
-    if (!targetOrder) return
+  const handleStartDelivery = async () => {
+    if (!selectedOrder) return
 
     try {
-      const response = await fetch(`/api/orders/${targetOrder.id}`, {
+      const response = await fetch(`/api/orders/${selectedOrder.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action: 'start_delivery' })
+        body: JSON.stringify({ status: 'IN_DELIVERY' })
       })
 
       if (response.ok) {
-        setIsOrderOpen(true)
         toast.success(t.courier.startDelivery, {
           description: t.courier.activeOrder
         })
-        // Update local state immediately
-        const updatedOrders = [...orders]
-        updatedOrders[targetIndex].orderStatus = 'IN_DELIVERY'
-        setOrders(updatedOrders)
+
+        setOrders(prevOrders => prevOrders.map(o =>
+          o.id === selectedOrder.id ? { ...o, orderStatus: 'IN_DELIVERY' } : o
+        ))
+        setSelectedOrder(prev => prev ? { ...prev, orderStatus: 'IN_DELIVERY' } : null)
+        setIsOrderPaused(false)
       }
     } catch (error) {
       console.error('Error starting delivery:', error)
@@ -237,27 +219,25 @@ export default function CourierPage() {
     }
   }
 
-  const handleCloseOrder = async () => {
-    if (!currentOrder) return
+  const handleCompleteDelivery = async () => {
+    if (!selectedOrder) return
 
     const confirmClose = window.confirm(t.courier.completeDelivery + '?')
     if (!confirmClose) return
 
     try {
-      const response = await fetch(`/api/orders/${currentOrder.id}`, {
+      const response = await fetch(`/api/orders/${selectedOrder.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action: 'complete_delivery' })
+        body: JSON.stringify({ status: 'DELIVERED' })
       })
 
       if (response.ok) {
         toast.success(t.common.success)
-        setIsOrderOpen(false)
-        setIsOrderPaused(false)
+        handleCloseOrderDetailSheet()
         fetchOrders()
-        if (currentOrderIndex > 0) setCurrentOrderIndex(prev => prev - 1)
       }
     } catch (error) {
       console.error('Error completing delivery:', error)
@@ -266,23 +246,24 @@ export default function CourierPage() {
   }
 
   const handlePauseOrder = async () => {
-    if (!currentOrder) return
+    if (!selectedOrder) return
 
     try {
-      const response = await fetch(`/api/orders/${currentOrder.id}`, {
+      const response = await fetch(`/api/orders/${selectedOrder.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action: 'pause_delivery' })
+        body: JSON.stringify({ status: 'PAUSED' })
       })
 
       if (response.ok) {
         setIsOrderPaused(true)
         toast.info(t.courier.pauseDelivery)
-        const updatedOrders = [...orders]
-        updatedOrders[currentOrderIndex].orderStatus = 'PAUSED'
-        setOrders(updatedOrders)
+        setOrders(prevOrders => prevOrders.map(o =>
+          o.id === selectedOrder.id ? { ...o, orderStatus: 'PAUSED' } : o
+        ))
+        setSelectedOrder(prev => prev ? { ...prev, orderStatus: 'PAUSED' } : null)
       }
     } catch (error) {
       console.error('Error pausing delivery:', error)
@@ -291,23 +272,24 @@ export default function CourierPage() {
   }
 
   const handleResumeOrder = async () => {
-    if (!currentOrder) return
+    if (!selectedOrder) return
 
     try {
-      const response = await fetch(`/api/orders/${currentOrder.id}`, {
+      const response = await fetch(`/api/orders/${selectedOrder.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action: 'resume_delivery' })
+        body: JSON.stringify({ status: 'IN_DELIVERY' })
       })
 
       if (response.ok) {
         setIsOrderPaused(false)
         toast.success(t.courier.resumeDelivery)
-        const updatedOrders = [...orders]
-        updatedOrders[currentOrderIndex].orderStatus = 'IN_DELIVERY'
-        setOrders(updatedOrders)
+        setOrders(prevOrders => prevOrders.map(o =>
+          o.id === selectedOrder.id ? { ...o, orderStatus: 'IN_DELIVERY' } : o
+        ))
+        setSelectedOrder(prev => prev ? { ...prev, orderStatus: 'IN_DELIVERY' } : null)
       }
     } catch (error) {
       console.error('Error resuming delivery:', error)
@@ -316,43 +298,46 @@ export default function CourierPage() {
   }
 
   const handleGetRoute = () => {
-    if (!currentOrder) return
+    if (!selectedOrder) return
 
     try {
-      let destination = currentOrder.deliveryAddress
+      let destination = selectedOrder.deliveryAddress
 
-      if (currentOrder.latitude && currentOrder.longitude) {
-        destination = `${currentOrder.latitude},${currentOrder.longitude}`
+      if (selectedOrder.latitude && selectedOrder.longitude) {
+        destination = `${selectedOrder.latitude},${selectedOrder.longitude}`
       }
 
       // Use current location if available, otherwise let Google Maps decide (usually defaults to current location)
-      const originParam = currentLocation ? `origin=${currentLocation.lat},${currentLocation.lng}&` : ''
+      let url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`
 
-      const navigationUrl = `https://www.google.com/maps/dir/?api=1&${originParam}destination=${destination}&travelmode=driving&dir_action=navigate`
-      window.open(navigationUrl, '_blank')
+      if (currentLocation) {
+        url += `&origin=${currentLocation.lat},${currentLocation.lng}`
+      }
+
+      window.open(url, '_blank')
     } catch (error) {
-      console.error('Error getting route:', error)
-      toast.error(t.common.error)
+      console.error('Error opening maps:', error)
+      toast.error('Не удалось открыть карту')
     }
   }
 
   const handleLogout = async () => {
-    // Clear localStorage (for backward compatibility)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    // Sign out from NextAuth (clears session cookies)
     await signOut({ callbackUrl: '/', redirect: true })
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full mb-4"
-        />
-        <p className="text-slate-600 font-medium animate-pulse">{t.common.loading}</p>
+          className="mb-4"
+        >
+          <RefreshCw className="w-8 h-8 text-primary" />
+        </motion.div>
+        <p className="text-slate-500">{t.common.loading}</p>
       </div>
     )
   }
@@ -385,280 +370,294 @@ export default function CourierPage() {
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
-        <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
-            <TabsTrigger
-              value="active"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
-            >
-              {t.courier.orders} ({orders.length})
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 h-auto gap-2 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              {t.courier.orders}
             </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
-            >
-              {t.courier.history} ({historyOrders.length})
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              {t.courier.chat}
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              {t.courier.profile}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="active" className="space-y-6">
-            <AnimatePresence mode="wait">
-              {currentOrder ? (
-                <motion.div
-                  key={currentOrder.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
-                >
-                  {/* Active Order Card */}
-                  <Card className="glass-card border-none overflow-hidden shadow-lg ring-1 ring-slate-200/50">
-                    <div className={`h-2 w-full ${isOrderPaused ? 'bg-yellow-500' :
-                      isOrderOpen ? 'bg-blue-500' :
-                        'bg-green-500'
-                      }`} />
-                    <CardContent className="p-0">
-                      {/* Map Section */}
-                      <div className="h-48 w-full relative z-0">
-                        <CourierMap
-                          destination={{
-                            lat: currentOrder.latitude || 41.2995,
-                            lng: currentOrder.longitude || 69.2401
-                          }}
-                          currentLocation={currentLocation}
-                        />
-                      </div>
+          <TabsContent value="orders" className="space-y-4">
+            {/* Map Section */}
+            <Card className="overflow-hidden border-none shadow-lg">
+              <CardContent className="p-0 h-[300px] relative z-0">
+                <CourierMap
+                  orders={orders}
+                  currentLocation={currentLocation}
+                  onMarkerClick={handleOpenOrder}
+                />
+              </CardContent>
+            </Card>
 
-                      <div className="p-6 bg-white relative z-10 -mt-4 rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                        <div className="flex justify-between items-start mb-6">
-                          <div>
-                            <Badge variant="outline" className="mb-2 border-slate-200 text-slate-500">
-                              #{currentOrder.orderNumber}
-                            </Badge>
-                            <h2 className="text-2xl font-bold text-slate-900 mb-1">
-                              {currentOrder.customer.name}
-                            </h2>
-                            <div className="flex items-center text-slate-500 text-sm">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {currentOrder.deliveryTime}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge
-                              className={`px-3 py-1 ${isOrderPaused ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
-                                isOrderOpen ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
-                                  'bg-green-100 text-green-700 hover:bg-green-200'
-                                }`}
-                            >
-                              {isOrderPaused ? t.courier.pauseDelivery : isOrderOpen ? t.courier.activeOrder : 'New'}
-                            </Badge>
-                          </div>
-                        </div>
+            {/* Orders List */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Package className="w-5 h-5 text-primary" />
+                {t.courier.todayOrders} ({orders.length})
+              </h2>
 
-                        <div className="space-y-4">
-                          <div className="flex items-start p-3 bg-slate-50 rounded-xl">
-                            <MapPin className="w-5 h-5 text-primary mt-0.5 mr-3 shrink-0" />
-                            <div>
-                              <p className="text-sm text-slate-500 mb-0.5">{t.courier.deliveryAddress}</p>
-                              <p className="font-medium text-slate-900 leading-snug">
-                                {currentOrder.deliveryAddress}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center p-3 bg-slate-50 rounded-xl">
-                            <Phone className="w-5 h-5 text-primary mr-3 shrink-0" />
-                            <div>
-                              <p className="text-sm text-slate-500 mb-0.5">{t.common.phone}</p>
-                              <a href={`tel:${currentOrder.customer.phone}`} className="font-medium text-slate-900 hover:text-primary">
-                                {currentOrder.customer.phone}
-                              </a>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 bg-slate-50 rounded-xl">
-                              <div className="flex items-center mb-1">
-                                <Package className="w-4 h-4 text-primary mr-2" />
-                                <span className="text-xs text-slate-500">{t.common.quantity}</span>
+              <AnimatePresence mode="popLayout">
+                {orders.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-12 bg-white rounded-2xl shadow-sm"
+                  >
+                    <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Package className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-slate-900">{t.courier.noOrders}</h3>
+                    <p className="text-slate-500">{t.courier.noOrders}</p>
+                    <Button
+                      onClick={() => fetchOrders()}
+                      variant="outline"
+                      className="mt-4"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Обновить
+                    </Button>
+                  </motion.div>
+                ) : (
+                  orders.map((order, index) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                    >
+                      <Card
+                        className={`overflow-hidden border-none shadow-md transition-all duration-200 active:scale-[0.98] ${order.orderStatus === 'DELIVERED' ? 'bg-slate-50/50' : 'bg-white'
+                          }`}
+                        onClick={() => handleOpenOrder(order)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-lg">#{order.orderNumber}</span>
+                                {order.orderStatus === 'DELIVERED' && (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Доставлен
+                                  </Badge>
+                                )}
+                                {order.orderStatus === 'IN_DELIVERY' && (
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200 animate-pulse">
+                                    <Navigation className="w-3 h-3 mr-1" />
+                                    В пути
+                                  </Badge>
+                                )}
+                                {order.orderStatus === 'PAUSED' && (
+                                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                                    <Pause className="w-3 h-3 mr-1" />
+                                    На паузе
+                                  </Badge>
+                                )}
                               </div>
-                              <p className="font-semibold text-slate-900">{currentOrder.quantity} шт.</p>
-                            </div>
-                            <div className="p-3 bg-slate-50 rounded-xl">
-                              <div className="flex items-center mb-1">
-                                <Utensils className="w-4 h-4 text-primary mr-2" />
-                                <span className="text-xs text-slate-500">{t.common.calories}</span>
+                              <h3 className="font-medium text-slate-900">{order.customer.name}</h3>
+                              <div className="flex items-center text-slate-500 text-sm">
+                                <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                                <span className="line-clamp-1">{order.deliveryAddress}</span>
                               </div>
-                              <p className="font-semibold text-slate-900">{currentOrder.calories}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-mono font-medium text-slate-900">{order.deliveryTime}</div>
+                              <div className="text-xs text-slate-500 mt-1">
+                                {order.calories} ккал
+                              </div>
                             </div>
                           </div>
 
-                          {currentOrder.specialFeatures && (
-                            <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
-                              <div className="flex items-center mb-1 text-yellow-700">
-                                <AlertCircle className="w-4 h-4 mr-2" />
-                                <span className="text-xs font-medium">Note</span>
+                          <div className="mt-4 flex items-center justify-between pt-4 border-t border-slate-100">
+                            <div className="flex items-center gap-4 text-sm text-slate-600">
+                              <div className="flex items-center">
+                                <Utensils className="w-4 h-4 mr-1.5 text-slate-400" />
+                                {order.quantity} шт
                               </div>
-                              <p className="text-sm text-yellow-900">{currentOrder.specialFeatures}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Bar */}
-                      <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-3">
-                        {!isOrderOpen ? (
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button
-                              variant="outline"
-                              className="h-12 text-base font-medium"
-                              onClick={handleGetRoute}
-                            >
-                              <Navigation className="w-5 h-5 mr-2" />
-                              {t.courier.buildRoute}
-                            </Button>
-                            <Button
-                              className="h-12 text-base font-medium bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200"
-                              onClick={handleOpenOrder}
-                            >
-                              <Play className="w-5 h-5 mr-2" />
-                              {t.courier.apply}
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                              <Button
-                                variant="outline"
-                                className="h-12 text-base font-medium"
-                                onClick={handleGetRoute}
-                              >
-                                <Navigation className="w-5 h-5 mr-2" />
-                                {t.courier.buildRoute}
-                              </Button>
-                              {isOrderPaused ? (
-                                <Button
-                                  className="h-12 text-base font-medium bg-blue-600 hover:bg-blue-700 text-white"
-                                  onClick={handleResumeOrder}
-                                >
-                                  <Play className="w-5 h-5 mr-2" />
-                                  {t.courier.resumeDelivery}
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="secondary"
-                                  className="h-12 text-base font-medium bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                                  onClick={handlePauseOrder}
-                                >
-                                  <Pause className="w-5 h-5 mr-2" />
-                                  {t.courier.pauseDelivery}
-                                </Button>
+                              {order.specialFeatures && order.specialFeatures !== '{}' && (
+                                <div className="flex items-center text-amber-600">
+                                  <AlertCircle className="w-4 h-4 mr-1.5" />
+                                  Особенности
+                                </div>
                               )}
                             </div>
-                            <Button
-                              className="w-full h-14 text-lg font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xl"
-                              onClick={handleCloseOrder}
-                            >
-                              <CheckCircle className="w-6 h-6 mr-2" />
-                              {t.courier.completeDelivery}
+                            <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5 -mr-2">
+                              Подробнее
+                              <ChevronRight className="w-4 h-4 ml-1" />
                             </Button>
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Navigation Controls for Orders */}
-                  {orders.length > 1 && (
-                    <div className="flex justify-between items-center px-2">
-                      <Button
-                        variant="ghost"
-                        onClick={handlePrevOrder}
-                        disabled={currentOrderIndex === 0}
-                        className="text-slate-500"
-                      >
-                        <ChevronLeft className="w-5 h-5 mr-1" />
-                        {t.common.back}
-                      </Button>
-                      <span className="text-sm font-medium text-slate-500">
-                        {currentOrderIndex + 1} / {orders.length}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        onClick={handleNextOrder}
-                        disabled={currentOrderIndex === orders.length - 1}
-                        className="text-slate-500"
-                      >
-                        {t.courier.swipeNext}
-                        <ChevronRight className="w-5 h-5 ml-1" />
-                      </Button>
-                    </div>
-                  )}
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="no-orders"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-12 text-center"
-                >
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                    <Package className="w-10 h-10 text-slate-300" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">{t.courier.noOrders}</h3>
-                  <p className="text-slate-500 max-w-[250px] mb-8">
-                    {t.courier.noOrders}
-                  </p>
-                  <Button
-                    onClick={() => fetchOrders()}
-                    variant="outline"
-                    className="min-w-[150px]"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                    )}
-                    Обновить
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
           </TabsContent>
 
-          <TabsContent value="history">
-            <div className="space-y-4">
-              {historyOrders.length > 0 ? (
-                historyOrders.map((order) => (
-                  <Card key={order.id} className="glass-card border-none shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <div className="font-medium text-slate-900">#{order.orderNumber} {order.customer.name}</div>
-                          <div className="text-sm text-slate-500">{order.deliveryAddress}</div>
-                        </div>
-                        <Badge variant={order.orderStatus === 'DELIVERED' ? 'default' : 'destructive'}>
-                          {order.orderStatus === 'DELIVERED' ? t.common.success : t.common.error}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center text-sm text-slate-500 mt-2">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {new Date(order.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-12 text-slate-500">
-                  {t.courier.history} {t.common.error}
-                </div>
-              )}
-            </div>
+          <TabsContent value="chat">
+            {courierData && <ChatTab />}
+          </TabsContent>
+
+          <TabsContent value="profile">
+            {courierData && <CourierProfile courier={courierData} />}
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Order Detail Sheet */}
+      <Sheet open={isOrderOpen} onOpenChange={setIsOrderOpen}>
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl p-0">
+          {selectedOrder && (
+            <div className="h-full flex flex-col">
+              <div className="p-6 pb-0">
+                <SheetHeader className="mb-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Badge variant="outline" className="mb-2 border-slate-200 text-slate-500">
+                        #{selectedOrder.orderNumber}
+                      </Badge>
+                      <SheetTitle className="text-2xl font-bold text-slate-900">
+                        {selectedOrder.customer.name}
+                      </SheetTitle>
+                      <SheetDescription className="flex items-center mt-1">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {selectedOrder.deliveryTime}
+                      </SheetDescription>
+                    </div>
+                    <div className="text-right">
+                      <Badge
+                        className={`px-3 py-1 ${isOrderPaused ? 'bg-yellow-100 text-yellow-700' :
+                          selectedOrder.orderStatus === 'IN_DELIVERY' ? 'bg-blue-100 text-blue-700' :
+                            'bg-green-100 text-green-700'
+                          }`}
+                      >
+                        {isOrderPaused ? t.courier.pauseDelivery :
+                          selectedOrder.orderStatus === 'IN_DELIVERY' ? t.courier.activeOrder : 'New'}
+                      </Badge>
+                    </div>
+                  </div>
+                </SheetHeader>
+
+                <div className="space-y-4">
+                  <div className="flex items-start p-3 bg-slate-50 rounded-xl">
+                    <MapPin className="w-5 h-5 text-primary mt-0.5 mr-3 shrink-0" />
+                    <div>
+                      <p className="text-sm text-slate-500 mb-0.5">{t.courier.deliveryAddress}</p>
+                      <p className="font-medium text-slate-900 leading-snug">
+                        {selectedOrder.deliveryAddress}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center p-3 bg-slate-50 rounded-xl">
+                    <Phone className="w-5 h-5 text-primary mr-3 shrink-0" />
+                    <div>
+                      <p className="text-sm text-slate-500 mb-0.5">{t.common.phone}</p>
+                      <a href={`tel:${selectedOrder.customer.phone}`} className="font-medium text-slate-900 hover:text-primary">
+                        {selectedOrder.customer.phone}
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-xl">
+                      <div className="flex items-center mb-1">
+                        <Package className="w-4 h-4 text-primary mr-2" />
+                        <span className="text-xs text-slate-500">{t.common.quantity}</span>
+                      </div>
+                      <p className="font-semibold text-slate-900">{selectedOrder.quantity} шт.</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl">
+                      <div className="flex items-center mb-1">
+                        <Utensils className="w-4 h-4 text-primary mr-2" />
+                        <span className="text-xs text-slate-500">{t.common.calories}</span>
+                      </div>
+                      <p className="font-semibold text-slate-900">{selectedOrder.calories}</p>
+                    </div>
+                  </div>
+
+                  {selectedOrder.specialFeatures && selectedOrder.specialFeatures !== '{}' && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
+                      <div className="flex items-center mb-1 text-yellow-700">
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        <span className="text-xs font-medium">Note</span>
+                      </div>
+                      <p className="text-sm text-yellow-900">{selectedOrder.specialFeatures}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-auto p-6 bg-slate-50 border-t border-slate-100 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-12 text-base font-medium"
+                    onClick={handleGetRoute}
+                  >
+                    <Navigation className="w-5 h-5 mr-2" />
+                    {t.courier.buildRoute}
+                  </Button>
+
+                  {selectedOrder.orderStatus === 'PENDING' && (
+                    <Button
+                      className="h-12 text-base font-medium bg-green-600 hover:bg-green-700 text-white"
+                      onClick={handleStartDelivery}
+                    >
+                      <Play className="w-5 h-5 mr-2" />
+                      {t.courier.apply}
+                    </Button>
+                  )}
+
+                  {(selectedOrder.orderStatus === 'IN_DELIVERY' || selectedOrder.orderStatus === 'PAUSED') && (
+                    isOrderPaused ? (
+                      <Button
+                        className="h-12 text-base font-medium bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={handleResumeOrder}
+                      >
+                        <Play className="w-5 h-5 mr-2" />
+                        {t.courier.resumeDelivery}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        className="h-12 text-base font-medium bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                        onClick={handlePauseOrder}
+                      >
+                        <Pause className="w-5 h-5 mr-2" />
+                        {t.courier.pauseDelivery}
+                      </Button>
+                    )
+                  )}
+                </div>
+
+                {(selectedOrder.orderStatus === 'IN_DELIVERY' || selectedOrder.orderStatus === 'PAUSED') && (
+                  <Button
+                    className="w-full h-14 text-lg font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xl"
+                    onClick={handleCompleteDelivery}
+                  >
+                    <CheckCircle className="w-6 h-6 mr-2" />
+                    {t.courier.completeDelivery}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

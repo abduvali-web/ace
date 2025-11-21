@@ -32,6 +32,7 @@ model Admin {
   orders                Order[]        @relation("OrderAdmin")
   courierOrders         Order[]        @relation("OrderCourier")
   clients               Customer[]     @relation("ClientDefaultCourier")
+  createdClients        Customer[]     @relation("ClientCreator")
   actionLogs            ActionLog[]
   interfaceConfig       InterfaceConfig?
   accounts              Account[]
@@ -63,8 +64,10 @@ model Customer {
   longitude         Float?
   deletedAt         DateTime?
   deletedBy         String?
+  createdBy         String?
   defaultCourierId  String?
   defaultCourier    Admin?   @relation("ClientDefaultCourier", fields: [defaultCourierId], references: [id])
+  creator           Admin?   @relation("ClientCreator", fields: [createdBy], references: [id])
   calories          Int      @default(2000)
   deliveryDays      String?
   autoOrdersEnabled Boolean  @default(true)

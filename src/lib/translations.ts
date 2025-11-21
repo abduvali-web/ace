@@ -50,6 +50,9 @@ export const translations = {
             orderNumber: 'Заказ №',
             apply: 'Принять',
             swipeNext: 'Следующий заказ',
+            chat: 'Чат',
+            profile: 'Профиль',
+            todayOrders: 'Заказы на сегодня',
         },
         admin: {
             dashboard: 'Панель управления',
@@ -129,6 +132,9 @@ export const translations = {
             orderNumber: 'Buyurtma №',
             apply: 'Qabul qilish',
             swipeNext: 'Keyingi buyurtma',
+            chat: 'Chat',
+            profile: 'Profil',
+            todayOrders: 'Bugungi buyurtmalar',
         },
         admin: {
             dashboard: 'Boshqaruv paneli',
@@ -208,6 +214,9 @@ export const translations = {
             orderNumber: 'Order #',
             apply: 'Apply',
             swipeNext: 'Next Order',
+            chat: 'Chat',
+            profile: 'Profile',
+            todayOrders: 'Today\'s Orders',
         },
         admin: {
             dashboard: 'Dashboard',

@@ -35,12 +35,15 @@ import {
   Play,
   Eye,
   Edit,
-  Save
+  Save,
+  MessageSquare,
+  LayoutDashboard
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { ChatTab } from '@/components/chat/ChatTab'
 
 interface Admin {
   id: string
@@ -400,8 +403,15 @@ export default function SuperAdminPage() {
                 value="interface"
                 className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
               >
-                <Settings className="w-4 h-4" />
+                <LayoutDashboard className="w-4 h-4" />
                 {t.admin.interface}
+              </TabsTrigger>
+              <TabsTrigger
+                value="chat"
+                className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Чат
               </TabsTrigger>
               <TabsTrigger
                 value="statistics"

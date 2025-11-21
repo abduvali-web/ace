@@ -18,14 +18,13 @@ export async function GET(request: NextRequest) {
 
     // For middle admin, only get admins created by them
     // For super admin, get all low admins and couriers
-    const where = user.role === 'MIDDLE_ADMIN'
-      ? {
-        role: { in: ['LOW_ADMIN', 'COURIER'] as const },
-        createdBy: user.id
-      }
-      : {
-        role: { in: ['LOW_ADMIN', 'COURIER'] as const }
-      }
+    const where: any = {
+      role: { in: ['LOW_ADMIN', 'COURIER'] as const }
+    }
+
+    if (user.role === 'MIDDLE_ADMIN') {
+      where.createdBy = user.id
+    }
 
     const lowAdmins = await db.admin.findMany({
       where,

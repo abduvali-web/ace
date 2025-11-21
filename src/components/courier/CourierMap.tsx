@@ -16,9 +16,19 @@ const icon = L.icon({
     shadowSize: [41, 41]
 })
 
+interface Order {
+    id: string
+    latitude: number
+    longitude: number
+    deliveryAddress: string
+    orderStatus: string
+    [key: string]: any
+}
+
 interface CourierMapProps {
-    destination: { lat: number; lng: number }
+    orders: Order[]
     currentLocation?: { lat: number; lng: number }
+    onMarkerClick: (order: Order) => void
 }
 
 function MapUpdater({ center }: { center: [number, number] }) {
@@ -29,7 +39,7 @@ function MapUpdater({ center }: { center: [number, number] }) {
     return null
 }
 
-export default function CourierMap({ destination, currentLocation }: CourierMapProps) {
+export default function CourierMap({ orders, currentLocation, onMarkerClick }: CourierMapProps) {
     const [isMounted, setIsMounted] = useState(false)
 
     useEffect(() => {
@@ -38,9 +48,12 @@ export default function CourierMap({ destination, currentLocation }: CourierMapP
 
     if (!isMounted) return <div className="h-full w-full bg-slate-100 animate-pulse rounded-lg" />
 
+    // Calculate center based on current location or first order or default
     const center: [number, number] = currentLocation
         ? [currentLocation.lat, currentLocation.lng]
-        : [destination.lat, destination.lng]
+        : orders.length > 0 && orders[0].latitude && orders[0].longitude
+            ? [orders[0].latitude, orders[0].longitude]
+            : [41.2995, 69.2401] // Default to Tashkent
 
     return (
         <MapContainer
@@ -53,11 +66,24 @@ export default function CourierMap({ destination, currentLocation }: CourierMapP
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            <Marker position={[destination.lat, destination.lng]} icon={icon}>
-                <Popup>
-                    Адрес доставки
-                </Popup>
-            </Marker>
+            {orders.map(order => (
+                order.latitude && order.longitude && (
+                    <Marker
+                        key={order.id}
+                        position={[order.latitude, order.longitude]}
+                        icon={icon}
+                        eventHandlers={{
+                            click: () => onMarkerClick(order)
+                        }}
+                    >
+                        <Popup>
+                            <div className="cursor-pointer" onClick={() => onMarkerClick(order)}>
+                                {order.deliveryAddress}
+                            </div>
+                        </Popup>
+                    </Marker>
+                )
+            ))}
 
             {currentLocation && (
                 <Marker position={[currentLocation.lat, currentLocation.lng]} icon={icon}>

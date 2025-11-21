@@ -10,11 +10,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
+    // Build where clause for filtering
+    const whereClause: any = {
+      deletedAt: null
+    }
+
+    // Data isolation: MIDDLE_ADMIN can only see their own clients and clients from their low admins
+    if (user.role === 'MIDDLE_ADMIN') {
+      // Get all low admins created by this middle admin
+      const lowAdmins = await db.admin.findMany({
+        where: {
+          createdBy: user.id,
+          role: 'LOW_ADMIN'
+        },
+        select: { id: true }
+      })
+      const lowAdminIds = lowAdmins.map(admin => admin.id)
+
+      // Filter clients: only those created by this middle admin or their low admins
+      whereClause.createdBy = {
+        in: [user.id, ...lowAdminIds]
+      }
+    }
+
     // Get clients from database with isActive status, excluding deleted ones
     const dbClients = await db.customer.findMany({
-      where: {
-        deletedAt: null
-      },
+      where: whereClause,
       include: {
         defaultCourier: {
           select: {
@@ -49,7 +70,7 @@ export async function GET(request: NextRequest) {
       latitude: dbClient.latitude,
       longitude: dbClient.longitude,
       defaultCourierId: dbClient.defaultCourierId,
-      defaultCourierName: dbClient.defaultCourier?.name
+      defaultCourierName: (dbClient as any).defaultCourier?.name
     }))
 
     return NextResponse.json(clients)
@@ -123,8 +144,9 @@ export async function POST(request: NextRequest) {
         isActive: true,
         latitude,
         longitude,
-        defaultCourierId: defaultCourierId || null
-      },
+        defaultCourierId: defaultCourierId || null,
+        createdBy: user.role === 'MIDDLE_ADMIN' ? user.id : null
+      } as any,
       include: {
         defaultCourier: {
           select: {
@@ -150,7 +172,7 @@ export async function POST(request: NextRequest) {
       latitude: dbClient.latitude,
       longitude: dbClient.longitude,
       defaultCourierId: dbClient.defaultCourierId,
-      defaultCourierName: dbClient.defaultCourier?.name
+      defaultCourierName: (dbClient as any).defaultCourier?.name
     }
 
     return NextResponse.json({
