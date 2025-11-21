@@ -1,0 +1,60 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - button "Switch language" [ref=e6]:
+      - img
+      - generic [ref=e7]: Switch language
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Create Account
+        - generic [ref=e12]: Get started with your 30-day free trial
+      - generic [ref=e13]:
+        - button "Continue with Google" [ref=e14]:
+          - img
+          - text: Continue with Google
+        - generic [ref=e19]: Or sign up with email
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: Full Name
+            - generic [ref=e23]:
+              - img [ref=e24]
+              - textbox "Full Name" [ref=e27]:
+                - /placeholder: John Doe
+          - generic [ref=e28]:
+            - generic [ref=e29]: Email
+            - generic [ref=e30]:
+              - img [ref=e31]
+              - textbox "Email" [ref=e34]:
+                - /placeholder: you@example.com
+          - generic [ref=e35]:
+            - generic [ref=e36]: Password
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - textbox "Password" [ref=e41]
+          - generic [ref=e42]:
+            - generic [ref=e43]: Confirm Password
+            - generic [ref=e44]:
+              - img [ref=e45]
+              - textbox "Confirm Password" [ref=e48]
+          - button "Create Account" [ref=e49]:
+            - text: Create Account
+            - img
+      - generic [ref=e50]:
+        - paragraph [ref=e51]:
+          - text: Already have an account?
+          - link "Sign in" [ref=e52] [cursor=pointer]:
+            - /url: /login
+        - paragraph [ref=e53]:
+          - text: By signing up, you agree to our
+          - link "Terms of Service" [ref=e54] [cursor=pointer]:
+            - /url: "#"
+          - text: and
+          - link "Privacy Policy" [ref=e55] [cursor=pointer]:
+            - /url: "#"
+  - region "Notifications alt+T"
+  - alert [ref=e56]
+  - button "Open Next.js Dev Tools" [ref=e62] [cursor=pointer]:
+    - img [ref=e63]
+```

@@ -1,0 +1,268 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - img "AutoFood Logo" [ref=e7]
+        - generic [ref=e8]:
+          - button "Switch language" [ref=e9]:
+            - img
+            - generic [ref=e10]: Switch language
+          - button [ref=e11]:
+            - img
+          - link "Navigate to login page":
+            - /url: /login
+          - link "Qo'ng'iroq" [ref=e12] [cursor=pointer]:
+            - /url: tel:+998977087373
+            - button "Qo'ng'iroq" [ref=e13]:
+              - img
+              - generic [ref=e14]: Qo'ng'iroq
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - img
+        - text: "O'zbekistonda #1 Yetkazib Berish Tizimi"
+      - heading "Biznesingizni Avtomatlashtiring" [level=1] [ref=e23]:
+        - text: Biznesingizni
+        - text: Avtomatlashtiring
+      - paragraph [ref=e24]: Restoran va yetkazib berish xizmatlari uchun mukammal yechim. Buyurtmalarni boshqaring, kuryerlarni kuzating va daromadingizni oshiring.
+      - generic [ref=e25]:
+        - link "Tizimga Kirish" [ref=e26] [cursor=pointer]:
+          - /url: /login
+          - button "Tizimga Kirish" [ref=e27]:
+            - text: Tizimga Kirish
+            - img
+        - link "+998 97 708 73 73" [ref=e28] [cursor=pointer]:
+          - /url: tel:+998977087373
+          - button "+998 97 708 73 73" [ref=e29]:
+            - img
+            - text: +998 97 708 73 73
+    - generic [ref=e32]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e39]: Tezkor Ishlash
+        - generic [ref=e40]: Buyurtmalarni soniyalar ichida qabul qiling va kuryerlarga yo'naltiring.
+      - generic [ref=e43]:
+        - img [ref=e45]
+        - generic [ref=e47]: Xavfsiz Tizim
+        - generic [ref=e48]: Ma'lumotlaringiz himoyalangan va har doim zaxira nusxasi olinadi.
+      - generic [ref=e51]:
+        - img [ref=e53]
+        - generic [ref=e56]: Har Joyda
+        - generic [ref=e57]: Telefon, planshet yoki kompyuter orqali biznesingizni boshqaring.
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - generic [ref=e62]: Funksiyalar
+        - heading "Avtomatlashtirish Imkoniyatlari" [level=2] [ref=e63]
+        - paragraph [ref=e64]: AutoFood tizimi biznesingizni maksimal samaradorlikka olib chiqadi
+      - generic [ref=e65]:
+        - generic [ref=e67]:
+          - heading "Avtomatik Buyurtmalar" [level=3] [ref=e68]
+          - paragraph [ref=e69]: Doimiy mijozlaringiz uchun avtomatik buyurtmalar yarating. Tizim har kuni, hafta yoki oy sari avtomatik ravishda buyurtmalarni yaratadi va kuryerlarga yuboradi.
+          - list [ref=e70]:
+            - listitem [ref=e71]:
+              - img [ref=e73]
+              - generic [ref=e75]: Vaqt bo'yicha avtomatik yaratish
+            - listitem [ref=e76]:
+              - img [ref=e78]
+              - generic [ref=e80]: Mijoz ma'lumotlari saqlash
+            - listitem [ref=e81]:
+              - img [ref=e83]
+              - generic [ref=e85]: Buyurtma tarixini kuzatish
+            - listitem [ref=e86]:
+              - img [ref=e88]
+              - generic [ref=e90]: Eslatmalar va bildirishnomalar
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]: Har kuni soat 12:00
+            - generic [ref=e96]: Faol
+          - generic [ref=e97]:
+            - generic [ref=e98]: Haftada 3 marta
+            - generic [ref=e99]: Rejalashtrilgan
+          - generic [ref=e100]:
+            - generic [ref=e101]: Oylik obuna
+            - generic [ref=e102]: Rejalashtrilgan
+      - generic [ref=e103]:
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e109]: "247"
+            - generic [ref=e110]:
+              - paragraph [ref=e111]: Buyurtmalar
+              - paragraph [ref=e112]: +12% haftalik
+          - generic [ref=e113]:
+            - generic [ref=e115]: "45"
+            - generic [ref=e116]:
+              - paragraph [ref=e117]: Kuryerlar
+              - paragraph [ref=e118]: Faol
+        - generic [ref=e120]:
+          - heading "Real Vaqtda Kuzatish" [level=3] [ref=e121]
+          - paragraph [ref=e122]: Barcha buyurtmalar va kuryerlaringizni bir joydan kuzating. Statistika, hisobotlar va real vaqt ma'lumotlari.
+          - list [ref=e123]:
+            - listitem [ref=e124]:
+              - img [ref=e126]
+              - generic [ref=e128]: Kuryerlar lokatsiyasini ko'rish
+            - listitem [ref=e129]:
+              - img [ref=e131]
+              - generic [ref=e133]: Buyurtma statusini kuzatish
+            - listitem [ref=e134]:
+              - img [ref=e136]
+              - generic [ref=e138]: Detallı hisobotlar
+            - listitem [ref=e139]:
+              - img [ref=e141]
+              - generic [ref=e143]: Daromad statistikasi
+    - generic [ref=e145]:
+      - generic [ref=e146]:
+        - generic [ref=e147]: Mijozlarimiz fikri
+        - heading "1000+ Baxtli Mijozlar" [level=2] [ref=e148]
+        - paragraph [ref=e149]: AutoFood tizimidan foydalanayotgan restoranlar va kafelarning sharhlari
+      - generic [ref=e150]:
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - img [ref=e154]
+            - img [ref=e156]
+            - img [ref=e158]
+            - img [ref=e160]
+            - img [ref=e162]
+          - paragraph [ref=e164]: "\"AutoFood tizimi bizning buyurtmalarni 40% ga oshirdi. Endi har bir mijoz vaqtida va to'g'ri manzilga yetkaziladi. Ajoyib xizmat!\""
+          - generic [ref=e165]:
+            - generic [ref=e166]: S
+            - generic [ref=e167]:
+              - paragraph [ref=e168]: Sardor Umarov
+              - paragraph [ref=e169]: Restoran egasi, Osh Markazi
+        - generic [ref=e171]:
+          - generic [ref=e172]:
+            - img [ref=e173]
+            - img [ref=e175]
+            - img [ref=e177]
+            - img [ref=e179]
+            - img [ref=e181]
+          - paragraph [ref=e183]: "\"Kuryer boshqaruvi juda qulay. Barcha buyurtmalarni real vaqtda kuzatish mumkin. Xatolar deyarli yo'qoldi. Tavsiya qilaman!\""
+          - generic [ref=e184]:
+            - generic [ref=e185]: D
+            - generic [ref=e186]:
+              - paragraph [ref=e187]: Dilnoza Karimova
+              - paragraph [ref=e188]: Menejer, FastFood Express
+        - generic [ref=e190]:
+          - generic [ref=e191]:
+            - img [ref=e192]
+            - img [ref=e194]
+            - img [ref=e196]
+            - img [ref=e198]
+            - img [ref=e200]
+          - paragraph [ref=e202]: "\"Avtomatik buyurtmalar funksiyasi bizga juda yordam berdi. Doimiy mijozlar uchun endi hech narsa unutmaymiz. 5 yulduz!\""
+          - generic [ref=e203]:
+            - generic [ref=e204]: J
+            - generic [ref=e205]:
+              - paragraph [ref=e206]: Jamshid Aliyev
+              - paragraph [ref=e207]: Biznes egasi, Milliy Taomlar
+    - generic [ref=e210]:
+      - generic [ref=e211]:
+        - heading "Nega AutoFood?" [level=2] [ref=e212]
+        - paragraph [ref=e213]: Raqobatchilarga nisbatan ustunliklarimiz
+      - generic [ref=e214]:
+        - generic [ref=e218]:
+          - generic [ref=e219]: 💰
+          - heading "30% Xarajatni Kamaytiradi" [level=3] [ref=e220]
+          - paragraph [ref=e221]: Avtomatlashtirish orqali qo'shimcha xodimlar uchun xarajatlarni kamay tiring
+        - generic [ref=e225]:
+          - generic [ref=e226]: ⚡
+          - heading "50% Tezroq Yetkazish" [level=3] [ref=e227]
+          - paragraph [ref=e228]: Optimallashtirilgan marshrutlar bilan yetkazish vaqtini qisqartiring
+        - generic [ref=e232]:
+          - generic [ref=e233]: 🛡️
+          - heading "99.9% Ishonchlı" [level=3] [ref=e234]
+          - paragraph [ref=e235]: Server downtime deyarli yo'q. Biznesingiz doimo ishlaydi
+        - generic [ref=e239]:
+          - generic [ref=e240]: 🎯
+          - heading "24/7 Qo'llab-quvvatlash" [level=3] [ref=e241]
+          - paragraph [ref=e242]: Har qanday savol yoki muammoda bizning jamoa yordam beradi
+      - generic [ref=e244]:
+        - heading "Hoziroq Boshlang!" [level=3] [ref=e245]
+        - paragraph [ref=e246]: Biznesingizni yangi bosqichga ko'taring. 30 kun bepul sinov davri!
+        - generic [ref=e247]:
+          - link "Bepul Boshlash" [ref=e248] [cursor=pointer]:
+            - /url: /login
+            - button "Bepul Boshlash" [ref=e249]:
+              - img
+              - text: Bepul Boshlash
+          - link "Maslahat Olish" [ref=e250] [cursor=pointer]:
+            - /url: tel:+998977087373
+            - button "Maslahat Olish" [ref=e251]:
+              - img
+              - text: Maslahat Olish
+    - generic [ref=e253]:
+      - generic [ref=e254]:
+        - heading "Qulay Narxlar" [level=2] [ref=e255]
+        - paragraph [ref=e256]: Biznesingiz hajbiga mos keladigan tarifni tanlang
+      - generic [ref=e257]:
+        - generic [ref=e259]:
+          - generic [ref=e260]:
+            - generic [ref=e261]: 1 Oy
+            - generic [ref=e262]:
+              - generic [ref=e263]: $100
+              - generic [ref=e264]: / oyiga
+          - list [ref=e266]:
+            - listitem [ref=e267]:
+              - img [ref=e269]
+              - generic [ref=e271]: Barcha funksiyalar
+            - listitem [ref=e272]:
+              - img [ref=e274]
+              - generic [ref=e276]: Cheksiz buyurtmalar
+            - listitem [ref=e277]:
+              - img [ref=e279]
+              - generic [ref=e281]: 24/7 Texnik yordam
+            - listitem [ref=e282]:
+              - img [ref=e284]
+              - generic [ref=e286]: Kuryer ilovasi
+            - listitem [ref=e287]:
+              - img [ref=e289]
+              - generic [ref=e291]: Admin paneli
+          - link "Tanlash" [ref=e293] [cursor=pointer]:
+            - /url: tel:+998977087373
+            - button "Tanlash" [ref=e294]
+        - generic [ref=e296]:
+          - generic [ref=e297]: ENG MASHHUR
+          - generic [ref=e298]:
+            - generic [ref=e299]: 3 Oy
+            - generic [ref=e300]:
+              - generic [ref=e301]: $200
+              - generic [ref=e302]: / jami
+            - paragraph [ref=e303]: 33% Tejang
+          - list [ref=e305]:
+            - listitem [ref=e306]:
+              - img [ref=e308]
+              - generic [ref=e310]: Barcha funksiyalar
+            - listitem [ref=e311]:
+              - img [ref=e313]
+              - generic [ref=e315]: Cheksiz buyurtmalar
+            - listitem [ref=e316]:
+              - img [ref=e318]
+              - generic [ref=e320]: 24/7 Texnik yordam
+            - listitem [ref=e321]:
+              - img [ref=e323]
+              - generic [ref=e325]: Kuryer ilovasi
+            - listitem [ref=e326]:
+              - img [ref=e328]
+              - generic [ref=e330]: Admin paneli
+            - listitem [ref=e331]:
+              - img [ref=e333]
+              - generic [ref=e335]: Premium sozlamalar
+          - link "Hoziroq Ulanish" [ref=e337] [cursor=pointer]:
+            - /url: tel:+998977087373
+            - button "Hoziroq Ulanish" [ref=e338]
+    - generic [ref=e340]:
+      - heading "Savollaringiz bormi?" [level=2] [ref=e341]
+      - paragraph [ref=e342]: Bizning mutaxassislarimiz sizga yordam berishga tayyor. Hoziroq qo'ng'iroq qiling va bepul konsultatsiya oling.
+      - link "+998 97 708 73 73" [ref=e343] [cursor=pointer]:
+        - /url: tel:+998977087373
+        - button "+998 97 708 73 73" [ref=e344]:
+          - img
+          - text: +998 97 708 73 73
+    - contentinfo [ref=e345]:
+      - paragraph [ref=e347]: © 2025 AutoFood. Barcha huquqlar himoyalangan.
+  - region "Notifications alt+T"
+  - alert [ref=e348]
+  - button "Open Next.js Dev Tools" [ref=e354] [cursor=pointer]:
+    - img [ref=e355]
+```

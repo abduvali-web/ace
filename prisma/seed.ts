@@ -66,20 +66,76 @@ const clients = [
 async function main() {
   console.log('🌱 Starting seeding...')
 
+  // Standard password for all test users
+  const password = await hash('Test123!@#', 12)
+
   // Create Super Admin
-  const password = await hash('admin123', 12)
-  const admin = await prisma.admin.upsert({
+  const superAdmin = await prisma.admin.upsert({
     where: { email: 'super@admin.com' },
-    update: {},
+    update: {
+      password,
+    },
     create: {
       email: 'super@admin.com',
-      name: 'Супер Администратор',
+      name: 'Super Admin',
       password,
       role: 'SUPER_ADMIN',
       isActive: true,
     },
   })
-  console.log(`👤 Created admin: ${admin.email}`)
+  console.log(`👤 Created Super Admin: ${superAdmin.email}`)
+
+  // Create Middle Admin
+  const middleAdmin = await prisma.admin.upsert({
+    where: { email: 'middle@admin.com' },
+    update: {
+      password,
+    },
+    create: {
+      email: 'middle@admin.com',
+      name: 'Middle Admin',
+      password,
+      role: 'MIDDLE_ADMIN',
+      isActive: true,
+      createdBy: superAdmin.id,
+    },
+  })
+  console.log(`👤 Created Middle Admin: ${middleAdmin.email}`)
+
+  // Create Low Admin
+  const lowAdmin = await prisma.admin.upsert({
+    where: { email: 'low@admin.com' },
+    update: {
+      password,
+    },
+    create: {
+      email: 'low@admin.com',
+      name: 'Low Admin',
+      password,
+      role: 'LOW_ADMIN',
+      isActive: true,
+      createdBy: middleAdmin.id,
+    },
+  })
+  console.log(`👤 Created Low Admin: ${lowAdmin.email}`)
+
+  // Create Test Courier
+  const courier = await prisma.admin.upsert({
+    where: { email: 'courier@test.com' },
+    update: {
+      password,
+    },
+    create: {
+      email: 'courier@test.com',
+      name: 'Test Courier',
+      password,
+      role: 'COURIER',
+      phone: '+998 99 999 99 99',
+      isActive: true,
+      createdBy: middleAdmin.id,
+    },
+  })
+  console.log(`🚗 Created Courier: ${courier.email}`)
 
   // Create Clients
   for (const client of clients) {
@@ -93,13 +149,21 @@ async function main() {
         address: client.address,
         preferences: client.specialFeatures,
         orderPattern: 'daily',
-        isActive: client.isActive
+        isActive: client.isActive,
+        createdBy: middleAdmin.id,
       }
     })
     console.log(`👥 Created client: ${createdClient.name}`)
   }
 
   console.log('✅ Seeding finished.')
+  console.log('')
+  console.log('📋 Test Credentials:')
+  console.log('-------------------')
+  console.log('Super Admin: super@admin.com / Test123!@#')
+  console.log('Middle Admin: middle@admin.com / Test123!@#')
+  console.log('Low Admin: low@admin.com / Test123!@#')
+  console.log('Courier: courier@test.com / Test123!@#')
 }
 
 main()

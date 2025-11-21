@@ -100,7 +100,7 @@ export default function LandingPage() {
                                     icon: <Shield className="w-5 h-5 text-primary" />
                                 }
                             ]} title="AutoFood Qo'llanmasi" />
-                            <Link href="/login">
+                            <Link href="/login" aria-label="Navigate to login page">
                                 <Button variant="ghost" className="font-medium hidden sm:inline-flex">
                                     {t.common.login}
                                 </Button>
@@ -132,15 +132,15 @@ export default function LandingPage() {
                         className="max-w-4xl mx-auto"
                     >
                         <motion.div variants={itemVariants} className="mb-6 flex justify-center">
-                            <Badge variant="outline" className="px-4 py-1.5 text-sm border-primary/20 bg-primary/5 text-primary rounded-full">
-                                <Star className="w-3.5 h-3.5 mr-2 fill-primary" />
+                            <Badge variant="outline" className="px-4 py-1.5 text-sm border-primary/40 bg-primary/10 text-foreground font-medium rounded-full">
+                                <Star className="w-3.5 h-3.5 mr-2 fill-primary text-primary" />
                                 O'zbekistonda #1 Yetkazib Berish Tizimi
                             </Badge>
                         </motion.div>
 
-                        <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 text-gradient">
+                        <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8">
                             Biznesingizni <br />
-                            <span className="text-primary">Avtomatlashtiring</span>
+                            <span className="bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent">Avtomatlashtiring</span>
                         </motion.h1>
 
                         <motion.p variants={itemVariants} className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
