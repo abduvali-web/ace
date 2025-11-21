@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
-
-function verifyToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-  const token = authHeader.substring(7)
-  try { return jwt.verify(token, JWT_SECRET) as any } catch { return null }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = verifyToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'COURIER') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN', 'COURIER'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -48,11 +39,6 @@ export async function GET(request: NextRequest) {
 
     let filteredOrders = orders
     if (user.role === 'COURIER') {
-      // filteredOrders = filteredOrders.filter(order => 
-      //   order.orderStatus === 'PENDING' || 
-      //   order.orderStatus === 'IN_DELIVERY' || 
-      //   order.orderStatus === 'PAUSED'
-      // )
       const today = new Date().toISOString().split('T')[0]
       filteredOrders = filteredOrders.filter(order => {
         const orderDate = order.deliveryDate ? new Date(order.deliveryDate).toISOString().split('T')[0] : new Date(order.createdAt).toISOString().split('T')[0]
@@ -102,15 +88,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(transformedOrders)
   } catch (error) {
     console.error('Error fetching orders:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = verifyToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'COURIER') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN', 'COURIER'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -121,15 +109,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Не все обязательные поля заполнены' }, { status: 400 })
     }
 
-    try {
+    // Validate phone number
+    if (customerPhone.length < 10 || customerPhone.length > 15) {
+      return NextResponse.json({ error: 'Неверный формат номера телефона' }, { status: 400 })
+    }
+
+    // Use transaction to prevent race condition in order number generation
+    const newOrder = await db.$transaction(async (tx) => {
       let customer
       if (selectedClientId && selectedClientId !== 'manual') {
-        customer = await db.customer.findUnique({ where: { id: selectedClientId } })
+        customer = await tx.customer.findUnique({ where: { id: selectedClientId } })
       } else {
-        customer = await db.customer.findUnique({ where: { phone: customerPhone } })
+        customer = await tx.customer.findUnique({ where: { phone: customerPhone } })
         if (!customer) {
           // Create new customer as inactive for one-time orders
-          customer = await db.customer.create({
+          customer = await tx.customer.create({
             data: {
               name: customerName,
               phone: customerPhone,
@@ -142,20 +136,24 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      if (!customer) return NextResponse.json({ error: 'Не удалось найти или создать клиента' }, { status: 400 })
+      if (!customer) {
+        throw new Error('Failed to find or create customer')
+      }
 
-      const admin = await db.admin.findFirst({ where: { role: 'SUPER_ADMIN' } })
-      if (!admin) return NextResponse.json({ error: 'Не найден администратор для создания заказа' }, { status: 400 })
-
-      const lastOrder = await db.order.findFirst({ orderBy: { orderNumber: 'desc' } })
+      // Get next order number atomically within transaction
+      const lastOrder = await tx.order.findFirst({
+        orderBy: { orderNumber: 'desc' },
+        select: { orderNumber: true }
+      })
       const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
 
-      const newOrder = await db.order.create({
+      // Create order with the next order number
+      const order = await tx.order.create({
         data: {
           orderNumber: nextOrderNumber,
           customerId: customer.id,
-          adminId: admin.id,
-          courierId: courierId || customer.defaultCourierId || null,
+          adminId: user.id,
+          courierId: courierId || (customer as any).defaultCourierId || null,
           deliveryAddress,
           deliveryDate: date ? new Date(date) : null,
           deliveryTime: deliveryTime || '12:00',
@@ -173,23 +171,35 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      const transformedOrder = {
-        ...newOrder,
-        customerName: newOrder.customer?.name || customerName,
-        customerPhone: newOrder.customer?.phone || customerPhone,
-        deliveryDate: date || new Date(newOrder.createdAt).toISOString().split('T')[0],
-        isAutoOrder: false
-      }
+      return order
+    })
 
-      console.log(`✅ Created manual order: ${transformedOrder.customerName} (#${nextOrderNumber})`)
-
-      return NextResponse.json({ message: 'Заказ успешно создан', order: transformedOrder })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: 'Ошибка базы данных при создании заказа' }, { status: 500 })
+    const transformedOrder = {
+      ...newOrder,
+      customerName: newOrder.customer?.name || customerName,
+      customerPhone: newOrder.customer?.phone || customerPhone,
+      deliveryDate: date || new Date(newOrder.createdAt).toISOString().split('T')[0],
+      isAutoOrder: false
     }
+
+    console.log(`✅ Created manual order: ${transformedOrder.customerName} (#${newOrder.orderNumber})`)
+
+    return NextResponse.json({ message: 'Заказ успешно создан', order: transformedOrder })
+
   } catch (error) {
     console.error('Error creating order:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json({
+          error: 'Заказ с таким номером уже существует'
+        }, { status: 409 })
+      }
+    }
+
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
