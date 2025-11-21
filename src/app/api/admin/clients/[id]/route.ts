@@ -1,39 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
-
-function verifyRequestToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-  const token = authHeader.substring(7)
-  try { return jwt.verify(token, JWT_SECRET as string) as any } catch { return null }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
+import { Prisma } from '@prisma/client'
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = verifyRequestToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     const clientId = params.id
 
     const client = await db.customer.findUnique({ where: { id: clientId } })
-    if (!client) return NextResponse.json({ error: 'Клиент не найден' }, { status: 404 })
+    if (!client) {
+      return NextResponse.json({ error: 'Клиент не найден' }, { status: 404 })
+    }
 
+    // Hard delete orders and client (consider soft delete instead)
     await db.order.deleteMany({ where: { customerId: clientId } })
     await db.customer.delete({ where: { id: clientId } })
 
     return NextResponse.json({ message: 'Клиент успешно удален', client })
   } catch (error) {
     console.error('Error deleting client:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
@@ -42,9 +39,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = verifyRequestToken(request)
-    if (!user) return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -90,6 +86,23 @@ export async function PATCH(
 
   } catch (error) {
     console.error('Error updating client:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json({
+          error: 'Клиент с таким номером телефона уже существует'
+        }, { status: 409 })
+      }
+      if (error.code === 'P2025') {
+        return NextResponse.json({
+          error: 'Клиент не найден'
+        }, { status: 404 })
+      }
+    }
+
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
