@@ -11,6 +11,8 @@ import { toast } from 'sonner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+import { signIn, getSession } from 'next-auth/react'
+
 export default function Home() {
   const { t } = useLanguage()
   const [loginData, setLoginData] = useState({
@@ -24,26 +26,26 @@ export default function Home() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(loginData)
+      const result = await signIn('credentials', {
+        email: loginData.email,
+        password: loginData.password,
+        redirect: false,
       })
 
-      const data = await response.json()
+      if (result?.error) {
+        toast.error(t.common.error, { description: 'Проверьте данные и попробуйте снова' })
+      } else {
+        // Fetch session to get role
+        const session = await getSession()
+        const role = session?.user?.role
 
-      if (response.ok) {
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('user', JSON.stringify(data.user))
         toast.success(t.common.success, {
           description: t.auth.welcome
         })
 
         // Small delay for animation
         setTimeout(() => {
-          switch (data.user.role) {
+          switch (role) {
             case 'SUPER_ADMIN':
               window.location.href = '/super-admin'
               break
@@ -57,11 +59,10 @@ export default function Home() {
               window.location.href = '/courier'
               break
             default:
-              toast.error(t.common.error, { description: 'Неизвестная роль пользователя' })
+              // Fallback if role is missing or unknown
+              window.location.href = '/middle-admin'
           }
         }, 800)
-      } else {
-        toast.error(t.common.error, { description: data.error || 'Проверьте данные и попробуйте снова' })
       }
     } catch (err) {
       toast.error(t.common.error, { description: 'Не удалось соединиться с сервером' })
