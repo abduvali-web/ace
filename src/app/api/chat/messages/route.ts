@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
-
-function verifyToken(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-    const token = authHeader.substring(7)
-    try {
-        return jwt.verify(token, JWT_SECRET) as any
-    } catch {
-        return null
-    }
-}
+import { getAuthUser } from '@/lib/auth-utils'
 
 // GET - Fetch messages for a conversation
 export async function GET(request: NextRequest) {
     try {
-        const user = verifyToken(request)
+        const user = await getAuthUser(request)
         if (!user) {
             return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
         }
@@ -76,14 +63,17 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
         console.error('Error fetching messages:', error)
-        return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+        return NextResponse.json({
+            error: 'Внутренняя ошибка сервера',
+            ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+        }, { status: 500 })
     }
 }
 
 // PATCH - Mark messages as read
 export async function PATCH(request: NextRequest) {
     try {
-        const user = verifyToken(request)
+        const user = await getAuthUser(request)
         if (!user) {
             return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
         }
@@ -127,6 +117,9 @@ export async function PATCH(request: NextRequest) {
 
     } catch (error) {
         console.error('Error marking messages as read:', error)
-        return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+        return NextResponse.json({
+            error: 'Внутренняя ошибка сервера',
+            ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+        }, { status: 500 })
     }
 }
