@@ -20,6 +20,13 @@ export default {
                 nextUrl.pathname.startsWith('/low-admin') ||
                 nextUrl.pathname.startsWith('/courier')
             const isOnLogin = nextUrl.pathname === '/login'
+            const isOnHomePage = nextUrl.pathname === '/'
+            const isOnSignup = nextUrl.pathname === '/signup'
+
+            // Allow everyone to access home page and signup page
+            if (isOnHomePage || isOnSignup) {
+                return true
+            }
 
             // If logged in and trying to access login page, redirect to dashboard
             if (isLoggedIn && isOnLogin) {
