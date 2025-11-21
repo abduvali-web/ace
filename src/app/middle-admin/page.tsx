@@ -1584,10 +1584,6 @@ export default function MiddleAdminPage() {
                 }
               ]} />
               <TrialStatus compact />
-              <Button variant="outline" size="sm" onClick={() => setIsChangePasswordOpen(true)}>
-                <User className="w-4 h-4 mr-2" />
-                Change Password
-              </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 {t.common.logout}
@@ -1596,8 +1592,6 @@ export default function MiddleAdminPage() {
           </div>
         </div>
       </header>
-
-      <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col gap-4">
@@ -1650,10 +1644,11 @@ export default function MiddleAdminPage() {
               История
             </TabsTrigger>
             <TabsTrigger
-              value="chat"
+              value="profile"
               className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
             >
-              💬 Чат
+              <User className="w-4 h-4 mr-2" />
+              Профиль
             </TabsTrigger>
           </TabsList>
 
@@ -3706,10 +3701,44 @@ export default function MiddleAdminPage() {
             <HistoryTable role="MIDDLE_ADMIN" />
           </TabsContent >
 
-          {/* Chat Tab */}
-          < TabsContent value="chat" className="space-y-6" >
-            <ChatTab />
-          </TabsContent >
+          {/* Profile Tab with Chat and Settings */}
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Профиль и Настройки</CardTitle>
+                <CardDescription>
+                  Управляйте своим профилем и общайтесь с командой
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Change Password Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Безопасность</h3>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsChangePasswordOpen(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Изменить пароль
+                  </Button>
+                  <ChangePasswordModal
+                    isOpen={isChangePasswordOpen}
+                    onClose={() => setIsChangePasswordOpen(false)}
+                  />
+                </div>
+
+                {/* Divider */}
+                <div className="border-t" />
+
+                {/* Chat Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Сообщения</h3>
+                  <ChatTab />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="bin" className="space-y-4">
             <Tabs defaultValue="orders" className="w-full">
