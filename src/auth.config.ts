@@ -19,7 +19,7 @@ export default {
                 nextUrl.pathname.startsWith('/super-admin') ||
                 nextUrl.pathname.startsWith('/low-admin') ||
                 nextUrl.pathname.startsWith('/courier')
-            const isOnLogin = nextUrl.pathname === '/login' || nextUrl.pathname === '/'
+            const isOnLogin = nextUrl.pathname === '/login'
 
             // If logged in and trying to access login page, redirect to dashboard
             if (isLoggedIn && isOnLogin) {

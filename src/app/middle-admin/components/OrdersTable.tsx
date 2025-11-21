@@ -154,7 +154,7 @@ export function OrdersTable({
                         ))}
                         {orders.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={8} className="h-24 text-center">
+                                <TableCell colSpan={13} className="h-24 text-center">
                                     Нет заказов
                                 </TableCell>
                             </TableRow>

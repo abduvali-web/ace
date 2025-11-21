@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
           if (filters.unpaid && order.paymentStatus !== 'UNPAID') return false
           if (filters.card && order.paymentMethod !== 'CARD') return false
           if (filters.cash && order.paymentMethod !== 'CASH') return false
-          if (filters.autoOrders && false) return false
-          if (filters.manualOrders && true) return false
+          if (filters.autoOrders && !order.isAutoOrder) return false
+          if (filters.manualOrders && order.isAutoOrder) return false
           if (filters.calories1200 && order.calories !== 1200) return false
           if (filters.calories1600 && order.calories !== 1600) return false
           if (filters.calories2000 && order.calories !== 2000) return false
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       customerPhone: order.customer?.phone || 'Нет телефона',
       customer: { name: order.customer?.name || 'Неизвестный клиент', phone: order.customer?.phone || 'Нет телефона' },
       deliveryDate: order.deliveryDate ? new Date(order.deliveryDate).toISOString().split('T')[0] : new Date(order.createdAt).toISOString().split('T')[0],
-      isAutoOrder: true,
+      isAutoOrder: order.isAutoOrder,
       courierName: order.courier?.name || null
     }))
 

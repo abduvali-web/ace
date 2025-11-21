@@ -119,7 +119,7 @@ export async function PATCH(
       customerPhone: updatedOrder.customer?.phone || 'Нет телефона',
       customer: { name: updatedOrder.customer?.name || 'Неизвестный клиент', phone: updatedOrder.customer?.phone || 'Нет телефона' },
       deliveryDate: updatedOrder.deliveryDate ? new Date(updatedOrder.deliveryDate).toISOString().split('T')[0] : new Date(updatedOrder.createdAt).toISOString().split('T')[0],
-      isAutoOrder: true,
+      isAutoOrder: updatedOrder.isAutoOrder,
       courierName: updatedOrder.courier?.name || null
     }
 
@@ -160,7 +160,7 @@ export async function GET(
       customerPhone: order.customer?.phone || 'Нет телефона',
       customer: { name: order.customer?.name || 'Неизвестный клиент', phone: order.customer?.phone || 'Нет телефона' },
       deliveryDate: order.deliveryDate ? new Date(order.deliveryDate).toISOString().split('T')[0] : new Date(order.createdAt).toISOString().split('T')[0],
-      isAutoOrder: true
+      isAutoOrder: order.isAutoOrder
     }
 
     return NextResponse.json(transformedOrder)
