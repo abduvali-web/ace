@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Mail, Lock, ArrowRight, CheckCircle2, Truck, ShieldCheck, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,20 @@ export default function Home() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
+  // Check for URL error parameters (e.g. from Google Auth failure)
+  const [urlError, setUrlError] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const errorParam = params.get('error')
+    if (errorParam) {
+      setUrlError(errorParam)
+      toast.error(t.common.error, {
+        description: errorParam === 'Configuration' ? 'Server configuration error' : errorParam
+      })
+    }
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -33,7 +47,12 @@ export default function Home() {
       })
 
       if (result?.error) {
-        toast.error(t.common.error, { description: 'Проверьте данные и попробуйте снова' })
+        console.error('Login error:', result.error)
+        toast.error(t.common.error, {
+          description: result.error === 'CredentialsSignin'
+            ? 'Invalid email or password'
+            : result.error
+        })
       } else {
         // Fetch session to get role
         const session = await getSession()
