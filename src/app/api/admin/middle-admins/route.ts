@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
 import { hash } from 'bcryptjs'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
+import { passwordSchema, emailSchema } from '@/lib/validations'
+import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    let decoded: any
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-      if (decoded.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['SUPER_ADMIN'])) {
+      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     // Get middle admins from DB
@@ -44,32 +34,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(middleAdmins)
   } catch (error) {
     console.error('Error fetching middle admins:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    let decoded: any
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-      if (decoded.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['SUPER_ADMIN'])) {
+      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     const { email, password, name } = await request.json()
 
     if (!email || !password || !name) {
       return NextResponse.json({ error: 'Все поля обязательны' }, { status: 400 })
+    }
+
+    // Validate email
+    try {
+      emailSchema.parse(email)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+      }
+    }
+
+    // Validate password strength
+    try {
+      passwordSchema.parse(password)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+      }
     }
 
     // Check if admin already exists
@@ -79,15 +79,6 @@ export async function POST(request: NextRequest) {
 
     if (existingAdmin) {
       return NextResponse.json({ error: 'Администратор с таким email уже существует' }, { status: 400 })
-    }
-
-    // Verify creator exists
-    const creator = await db.admin.findUnique({
-      where: { id: decoded.id }
-    })
-
-    if (!creator) {
-      return NextResponse.json({ error: 'Сессия недействительна. Пожалуйста, войдите снова.' }, { status: 401 })
     }
 
     // Hash password
@@ -101,14 +92,14 @@ export async function POST(request: NextRequest) {
         name,
         role: 'MIDDLE_ADMIN',
         isActive: true,
-        createdBy: creator.id
+        createdBy: user.id
       }
     })
 
     // Log action
     await db.actionLog.create({
       data: {
-        adminId: decoded.id,
+        adminId: user.id,
         action: 'CREATE_ADMIN',
         entityType: 'ADMIN',
         entityId: newAdmin.id,
@@ -126,6 +117,18 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error creating middle admin:', error)
-    return NextResponse.json({ error: `Внутренняя ошибка сервера: ${error.message}` }, { status: 500 })
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json({
+          error: 'Администратор с таким email уже существует'
+        }, { status: 409 })
+      }
+    }
+
+    return NextResponse.json({
+      error: 'Внутренняя ошибка сервера',
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
+    }, { status: 500 })
   }
 }

@@ -1,29 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
-// Verify JWT token
-function verifyToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null
-  }
-  
-  const token = authHeader.substring(7)
-  try {
-    return jwt.verify(token, JWT_SECRET) as any
-  } catch {
-    return null
-  }
-}
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
+import { passwordSchema, emailSchema } from '@/lib/validations'
+import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = verifyToken(request)
-    if (!user || (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN')) {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json(
         { error: 'Доступ запрещен' },
         { status: 403 }
@@ -32,14 +18,14 @@ export async function GET(request: NextRequest) {
 
     // For middle admin, only get admins created by them
     // For super admin, get all low admins and couriers
-    const where = user.role === 'MIDDLE_ADMIN' 
-      ? { 
-          role: { in: ['LOW_ADMIN', 'COURIER'] },
-          createdBy: user.id 
-        }
-      : { 
-          role: { in: ['LOW_ADMIN', 'COURIER'] }
-        }
+    const where = user.role === 'MIDDLE_ADMIN'
+      ? {
+        role: { in: ['LOW_ADMIN', 'COURIER'] as const },
+        createdBy: user.id
+      }
+      : {
+        role: { in: ['LOW_ADMIN', 'COURIER'] as const }
+      }
 
     const lowAdmins = await db.admin.findMany({
       where,
@@ -57,7 +43,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching low admins:', error)
     return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
+      {
+        error: 'Внутренняя ошибка сервера',
+        ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+      },
       { status: 500 }
     )
   }
@@ -65,8 +54,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = verifyToken(request)
-    if (!user || (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN')) {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json(
         { error: 'Доступ запрещен' },
         { status: 403 }
@@ -87,6 +76,24 @@ export async function POST(request: NextRequest) {
         { error: 'Неверная роль' },
         { status: 400 }
       )
+    }
+
+    // Validate email
+    try {
+      emailSchema.parse(email)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
+      }
+    }
+
+    // Validate password strength
+    try {
+      passwordSchema.parse(password)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
+      }
     }
 
     // Check if admin already exists
@@ -137,8 +144,20 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error creating low admin:', error)
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json({
+          error: 'Администратор с таким email уже существует'
+        }, { status: 409 })
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
+      {
+        error: 'Внутренняя ошибка сервера',
+        ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+      },
       { status: 500 }
     )
   }

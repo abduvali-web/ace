@@ -1,26 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dev-key-please-change'
+import { getAuthUser, hasRole } from '@/lib/auth-utils'
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Check authorization
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (!token) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
-    }
-
-    let user: any
-    try {
-      user = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
-      return NextResponse.json({ error: 'Недействительный токен' }, { status: 401 })
-    }
-
-    if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const user = await getAuthUser(request)
+    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -96,7 +81,9 @@ export async function DELETE(request: NextRequest) {
       console.error('Delete clients error:', error)
       return NextResponse.json({
         error: 'Ошибка при перемещении в корзину',
-        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+        ...(process.env.NODE_ENV === 'development' && {
+          details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+        })
       }, { status: 500 })
     }
 
@@ -104,7 +91,9 @@ export async function DELETE(request: NextRequest) {
     console.error('Delete clients API error:', error)
     return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
-      details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      })
     }, { status: 500 })
   }
 }
