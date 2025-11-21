@@ -362,8 +362,13 @@ export default function MiddleAdminPage() {
     if (typeof window === 'undefined') return
 
     try {
+      // Set a timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 15000)
+      )
+
       // Fetch low admins
-      await fetchLowAdmins()
+      await Promise.race([fetchLowAdmins(), timeoutPromise])
 
       // Fetch orders
       const ordersUrl = selectedDate
@@ -374,12 +379,21 @@ export default function MiddleAdminPage() {
         'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
       }
 
-      const [ordersRes, clientsRes, statsRes, couriersRes] = await Promise.all([
+      const fetchPromise = Promise.all([
         fetch(ordersUrl, { headers }),
         fetch('/api/admin/clients', { headers }),
         fetch('/api/admin/statistics', { headers }),
         fetch('/api/admin/couriers', { headers })
       ])
+
+      const [ordersRes, clientsRes, statsRes, couriersRes] = await Promise.race([fetchPromise, timeoutPromise]) as [Response, Response, Response, Response]
+
+      // Handle 401 Unauthorized
+      if (ordersRes.status === 401 || clientsRes.status === 401) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+        return
+      }
 
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json()
@@ -414,6 +428,9 @@ export default function MiddleAdminPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error)
+      toast.error('Ошибка загрузки данных', {
+        description: error instanceof Error ? error.message : 'Проверьте соединение с интернетом'
+      })
     } finally {
       setIsLoading(false)
     }
