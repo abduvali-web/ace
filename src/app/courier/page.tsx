@@ -120,7 +120,6 @@ export default function CourierPage() {
     try {
       const response = await fetch('/api/orders', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
@@ -217,7 +216,6 @@ export default function CourierPage() {
       const response = await fetch(`/api/orders/${targetOrder.id}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ action: 'start_delivery' })
@@ -249,7 +247,6 @@ export default function CourierPage() {
       const response = await fetch(`/api/orders/${currentOrder.id}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ action: 'complete_delivery' })
@@ -275,7 +272,6 @@ export default function CourierPage() {
       const response = await fetch(`/api/orders/${currentOrder.id}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ action: 'pause_delivery' })
@@ -301,7 +297,6 @@ export default function CourierPage() {
       const response = await fetch(`/api/orders/${currentOrder.id}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ action: 'resume_delivery' })

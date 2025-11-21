@@ -336,7 +336,6 @@ export default function MiddleAdminPage() {
     try {
       const response = await fetch('/api/admin/low-admins', {
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
         }
       })
 
@@ -367,7 +366,6 @@ export default function MiddleAdminPage() {
         : `/api/orders?filters=${JSON.stringify(filters)}`
 
       const headers = {
-        'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
       }
 
       const fetchPromise = Promise.all([
@@ -409,7 +407,6 @@ export default function MiddleAdminPage() {
       // Fetch bin clients
       const binResponse = await fetch('/api/admin/clients/bin', {
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
         }
       })
 
@@ -431,7 +428,6 @@ export default function MiddleAdminPage() {
     try {
       const response = await fetch('/api/orders?deletedOnly=true', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
       if (response.ok) {
@@ -488,7 +484,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/orders/delete', {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ orderIds: Array.from(selectedOrders) })
@@ -518,7 +513,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/low-admins', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(createFormData)
@@ -558,12 +552,10 @@ export default function MiddleAdminPage() {
     if (!editingAdmin) return
 
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch(`/api/admin/low-admins/${editingAdmin.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           name: editAdminFormData.name,
@@ -727,7 +719,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/delete', {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -848,7 +839,6 @@ export default function MiddleAdminPage() {
         response = await fetch(`/api/orders/${editingOrderId}`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -861,7 +851,6 @@ export default function MiddleAdminPage() {
         response = await fetch('/api/orders', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(orderDataWithCoords)
@@ -931,7 +920,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/couriers', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -965,7 +953,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/features', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(featureFormData)
@@ -1007,7 +994,6 @@ export default function MiddleAdminPage() {
       const response = await fetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(clientFormData)
@@ -1096,7 +1082,6 @@ export default function MiddleAdminPage() {
       const response = await fetch(`/api/admin/clients/toggle-status`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ clientIds: [clientId], isActive: !currentStatus })
@@ -1119,7 +1104,6 @@ export default function MiddleAdminPage() {
       const response = await fetch(`/api/admin/clients/${clientId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
         }
       })
 
@@ -1166,7 +1150,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/toggle-status', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1210,7 +1193,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/toggle-status', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1248,7 +1230,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/orders/bulk-update', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1295,7 +1276,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/bulk-update', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1347,7 +1327,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/restore', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1395,7 +1374,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/permanent-delete', {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1425,7 +1403,6 @@ export default function MiddleAdminPage() {
       const response = await fetch('/api/admin/clients/run-auto-orders', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
           'Content-Type': 'application/json'
         }
       })
@@ -3334,7 +3311,6 @@ export default function MiddleAdminPage() {
                             try {
                               const response = await fetch(`/api/admin/${admin.id}/password`, {
                                 headers: {
-                                  'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
                                 }
                               })
                               if (response.ok) {
@@ -3359,7 +3335,6 @@ export default function MiddleAdminPage() {
                               const response = await fetch(`/api/admin/${admin.id}/toggle-status`, {
                                 method: 'PATCH',
                                 headers: {
-                                  'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
                                   'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({ isActive: !admin.isActive })
@@ -3393,7 +3368,6 @@ export default function MiddleAdminPage() {
                               const response = await fetch(`/api/admin/${admin.id}/delete`, {
                                 method: 'DELETE',
                                 headers: {
-                                  'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
                                 }
                               })
                               if (response.ok) {
@@ -3460,7 +3434,6 @@ export default function MiddleAdminPage() {
                               try {
                                 const response = await fetch(`/api/admin/${admin.id}/password`, {
                                   headers: {
-                                    'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
                                   }
                                 })
                                 if (response.ok) {
@@ -3498,7 +3471,6 @@ export default function MiddleAdminPage() {
                                 const response = await fetch(`/api/admin/${admin.id}/toggle-status`, {
                                   method: 'PATCH',
                                   headers: {
-                                    'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
                                     'Content-Type': 'application/json'
                                   },
                                   body: JSON.stringify({ isActive: !admin.isActive })
@@ -3531,7 +3503,6 @@ export default function MiddleAdminPage() {
                                   const response = await fetch(`/api/admin/${admin.id}/delete`, {
                                     method: 'DELETE',
                                     headers: {
-                                      'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
                                     }
                                   })
                                   if (response.ok) {

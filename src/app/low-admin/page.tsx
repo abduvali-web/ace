@@ -104,7 +104,6 @@ export default function LowAdminPage() {
       // Fetch orders
       const ordersResponse = await fetch(`/api/orders?date=${selectedDate.toISOString()}&filters=${JSON.stringify(filters)}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
@@ -116,7 +115,6 @@ export default function LowAdminPage() {
       // Fetch stats
       const statsResponse = await fetch('/api/admin/statistics', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 

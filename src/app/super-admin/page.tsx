@@ -126,12 +126,10 @@ export default function SuperAdminPage() {
 
   const handleUpdateProfile = async () => {
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch('/api/admin/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(profileForm)
       })
@@ -163,7 +161,6 @@ export default function SuperAdminPage() {
       // Fetch middle admins
       const adminsResponse = await fetch('/api/admin/middle-admins', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
@@ -175,7 +172,6 @@ export default function SuperAdminPage() {
       // Fetch action logs
       const logsResponse = await fetch('/api/admin/action-logs', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
@@ -188,7 +184,6 @@ export default function SuperAdminPage() {
       // Fetch order statistics
       const statsResponse = await fetch('/api/admin/statistics', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
@@ -216,7 +211,6 @@ export default function SuperAdminPage() {
       const response = await fetch(`/api/admin/${adminId}/toggle-status`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isActive: !isActive })
@@ -237,7 +231,6 @@ export default function SuperAdminPage() {
       const response = await fetch(`/api/admin/${adminId}/delete`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
@@ -262,7 +255,6 @@ export default function SuperAdminPage() {
       const response = await fetch('/api/admin/middle-admins', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(createFormData)
@@ -288,7 +280,6 @@ export default function SuperAdminPage() {
     try {
       const response = await fetch(`/api/admin/${adminId}/password`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
 
