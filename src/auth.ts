@@ -1,15 +1,13 @@
 import NextAuth from "next-auth"
-import Google from "next-auth/providers/google"
+import authConfig from "./auth.config"
 import Credentials from "next-auth/providers/credentials"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    ...authConfig,
     providers: [
-        Google({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        }),
+        ...authConfig.providers,
         Credentials({
             name: "credentials",
             credentials: {
@@ -58,6 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         })
     ],
     callbacks: {
+        ...authConfig.callbacks,
         async signIn({ user, account, profile }) {
             if (account?.provider === "google") {
                 try {
@@ -123,10 +122,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
             return session
         }
-    },
-    pages: {
-        signIn: "/",
-        error: "/",
     },
     session: {
         strategy: "jwt",
