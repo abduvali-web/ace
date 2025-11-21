@@ -22,10 +22,10 @@ export const clientCreateSchema = z.object({
     phone: phoneSchema,
     address: z.string().min(1, 'Адрес обязателен').max(500, 'Адрес слишком длинный'),
     preferences: z.string().max(1000, 'Предпочтения слишком длинные').optional(),
-    calories: z.number().int().min(0).max(10000).optional().default(2000),
+    calories: z.number().int().min(0).max(10000).optional(),
     deliveryDays: z.string().max(100).optional(),
     defaultCourierId: z.string().optional(),
-    autoOrdersEnabled: z.boolean().optional().default(true),
+    autoOrdersEnabled: z.boolean().optional(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional()
 })
@@ -70,13 +70,13 @@ export const orderCreateSchema = z.object({
     deliveryAddress: z.string().min(1).max(500),
     deliveryDate: z.string().optional(), // ISO date string
     deliveryTime: z.string().min(1),
-    quantity: z.number().int().min(1).max(100).default(1),
+    quantity: z.number().int().min(1).max(100),
     calories: z.number().int().min(0).max(10000),
     specialFeatures: z.string().max(500).optional(),
     paymentStatus: z.enum(['PAID', 'UNPAID']),
     paymentMethod: z.enum(['CARD', 'CASH']),
     orderStatus: z.enum(['PENDING', 'IN_DELIVERY', 'PAUSED', 'DELIVERED', 'FAILED']).optional(),
-    isPrepaid: z.boolean().optional().default(false),
+    isPrepaid: z.boolean().optional(),
     courierId: z.string().optional()
 })
 
