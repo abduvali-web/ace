@@ -43,11 +43,47 @@ export async function GET(request: NextRequest) {
       include: {
         customer: {
           select: {
-            orderPattern: true
+            deliveryDays: true
           }
         }
       }
     })
+
+    // Helper function to check if customer has daily delivery
+    const isDailyCustomer = (deliveryDays: string | null): boolean => {
+      if (!deliveryDays) return false
+      try {
+        const days = JSON.parse(deliveryDays)
+        return days.monday && days.tuesday && days.wednesday && days.thursday && days.friday && days.saturday && days.sunday
+      } catch {
+        return false
+      }
+    }
+
+    // Helper function to check if customer has even-day delivery
+    const isEvenDayCustomer = (deliveryDays: string | null): boolean => {
+      if (!deliveryDays) return false
+      try {
+        const days = JSON.parse(deliveryDays)
+        // Even days pattern: typically every other day
+        const selectedDays = Object.values(days).filter(Boolean).length
+        return selectedDays >= 3 && selectedDays <= 4 && !isDailyCustomer(deliveryDays)
+      } catch {
+        return false
+      }
+    }
+
+    // Helper function to check if customer has odd-day delivery
+    const isOddDayCustomer = (deliveryDays: string | null): boolean => {
+      if (!deliveryDays) return false
+      try {
+        const days = JSON.parse(deliveryDays)
+        const selectedDays = Object.values(days).filter(Boolean).length
+        return selectedDays >= 3 && selectedDays <= 4 && !isDailyCustomer(deliveryDays) && !isEvenDayCustomer(deliveryDays)
+      } catch {
+        return false
+      }
+    }
 
     // Calculate statistics
     const stats = {
@@ -60,10 +96,10 @@ export async function GET(request: NextRequest) {
       unpaidOrders: allOrders.filter(o => !o.isPrepaid).length,
       cardOrders: allOrders.filter(o => o.paymentMethod === 'CARD').length,
       cashOrders: allOrders.filter(o => o.paymentMethod === 'CASH').length,
-      dailyCustomers: allOrders.filter(o => o.customer && o.customer.orderPattern === 'daily').length,
-      evenDayCustomers: allOrders.filter(o => o.customer && o.customer.orderPattern === 'every_other_day_even').length,
-      oddDayCustomers: allOrders.filter(o => o.customer && o.customer.orderPattern === 'every_other_day_odd').length,
-      specialPreferenceCustomers: allOrders.filter(o => o.specialFeatures && o.specialFeatures !== '{}').length,
+      dailyCustomers: allOrders.filter(o => o.customer && isDailyCustomer(o.customer.deliveryDays)).length,
+      evenDayCustomers: allOrders.filter(o => o.customer && isEvenDayCustomer(o.customer.deliveryDays)).length,
+      oddDayCustomers: allOrders.filter(o => o.customer && isOddDayCustomer(o.customer.deliveryDays)).length,
+      specialPreferenceCustomers: allOrders.filter(o => o.specialFeatures && o.specialFeatures !== '{}' && o.specialFeatures !== '').length,
       orders1200: allOrders.filter(o => o.calories === 1200).length,
       orders1600: allOrders.filter(o => o.calories === 1600).length,
       orders2000: allOrders.filter(o => o.calories === 2000).length,

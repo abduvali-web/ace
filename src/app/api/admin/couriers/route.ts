@@ -31,14 +31,15 @@ export async function GET(request: NextRequest) {
         email: true,
         role: true,
         isActive: true,
-        createdAt: true
+        createdAt: true,
+        allowedTabs: true
       },
       orderBy: { createdAt: 'desc' }
     })
 
     const transformedCouriers = couriers.map(courier => ({
       ...courier,
-      allowedTabs: []
+      allowedTabs: courier.allowedTabs ? JSON.parse(courier.allowedTabs) : []
     }))
 
     return NextResponse.json(transformedCouriers)
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...newCourier,
-      allowedTabs: []
+      allowedTabs: newCourier.allowedTabs ? JSON.parse(newCourier.allowedTabs) : []
     })
   } catch (error) {
     console.error('Error creating courier:', error)

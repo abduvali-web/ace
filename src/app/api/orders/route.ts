@@ -155,6 +155,24 @@ export async function POST(request: NextRequest) {
     // Sanitize courierId
     const sanitizedCourierId = (courierId === '' || courierId === 'null') ? null : courierId
 
+    // Validate and sanitize coordinates
+    let sanitizedLatitude: number | null = null
+    let sanitizedLongitude: number | null = null
+
+    if (latitude !== undefined && latitude !== null && latitude !== '') {
+      const lat = parseFloat(String(latitude))
+      if (!isNaN(lat) && lat >= -90 && lat <= 90) {
+        sanitizedLatitude = lat
+      }
+    }
+
+    if (longitude !== undefined && longitude !== null && longitude !== '') {
+      const lng = parseFloat(String(longitude))
+      if (!isNaN(lng) && lng >= -180 && lng <= 180) {
+        sanitizedLongitude = lng
+      }
+    }
+
     // Use transaction to prevent race condition in order number generation
     const newOrder = await db.$transaction(async (tx) => {
       let customer
@@ -172,8 +190,8 @@ export async function POST(request: NextRequest) {
               preferences: specialFeatures,
               orderPattern: 'manual',
               isActive: false,  // One-time order - client is disabled by default
-              latitude: latitude ? parseFloat(String(latitude)) : null,
-              longitude: longitude ? parseFloat(String(longitude)) : null
+              latitude: sanitizedLatitude,
+              longitude: sanitizedLongitude
             }
           })
         }
@@ -190,7 +208,7 @@ export async function POST(request: NextRequest) {
       })
       const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
 
-      // Create order with the next order number
+      // Create order with the next order number and coordinates
       const order = await tx.order.create({
         data: {
           orderNumber: nextOrderNumber,
@@ -207,6 +225,8 @@ export async function POST(request: NextRequest) {
           paymentMethod: paymentMethod || 'CASH',
           isPrepaid: isPrepaid || false,
           orderStatus: 'PENDING',
+          latitude: sanitizedLatitude,
+          longitude: sanitizedLongitude
         },
         include: {
           customer: { select: { name: true, phone: true } },

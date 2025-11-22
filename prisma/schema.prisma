@@ -94,6 +94,8 @@ model Order {
   orderStatus     OrderStatus    @default(PENDING)
   isPrepaid       Boolean        @default(false)
   isAutoOrder     Boolean        @default(false)
+  latitude        Float?
+  longitude       Float?
   deliveredAt     DateTime?
   deletedAt       DateTime?
   createdAt       DateTime       @default(now())

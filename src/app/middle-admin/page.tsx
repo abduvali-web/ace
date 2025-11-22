@@ -847,15 +847,15 @@ export default function MiddleAdminPage() {
     setOrderError('')
 
     try {
-      // Парсим адрес для извлечения координат из Google Maps ссылки
-      const parsedAddress = await parseGoogleMapsUrl(orderFormData.deliveryAddress)
+      // Parse address to extract coordinates from Google Maps link
+      const parsedCoordinates = await parseGoogleMapsUrl(orderFormData.deliveryAddress)
 
-      // Извлекаем координаты, если они есть в адресе
+      // Extract coordinates if present
       let latitude: number | null = null
       let longitude: number | null = null
 
-      if (parsedAddress && parsedAddress.includes(',')) {
-        const coords = parsedAddress.split(',')
+      if (parsedCoordinates && parsedCoordinates.includes(',')) {
+        const coords = parsedCoordinates.split(',')
         const lat = parseFloat(coords[0].trim())
         const lng = parseFloat(coords[1].trim())
 
@@ -865,10 +865,10 @@ export default function MiddleAdminPage() {
         }
       }
 
-      // Добавляем координаты и дату в данные заказа
+      // Add coordinates and date to order data, but keep original address
       const orderDataWithCoords = {
         ...orderFormData,
-        deliveryAddress: parsedAddress,
+        // Keep the original deliveryAddress, don't overwrite with coordinates
         latitude,
         longitude,
         date: selectedDate ? selectedDate.toISOString().split('T')[0] : null
