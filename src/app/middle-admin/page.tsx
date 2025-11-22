@@ -415,6 +415,9 @@ export default function MiddleAdminPage() {
         const binData = await binResponse.json()
         setBinClients(binData)
       }
+
+      // Fetch bin orders
+      await fetchBinOrders()
     } catch (error) {
       console.error('Error fetching data:', error)
       toast.error('Ошибка загрузки данных', {
@@ -505,6 +508,46 @@ export default function MiddleAdminPage() {
     }
   }
 
+  const handlePermanentDeleteOrders = async () => {
+    if (selectedOrders.size === 0) {
+      toast.error('Пожалуйста, выберите заказы для удаления')
+      return
+    }
+
+    const confirmMessage = `⚠️ ВНИМАНИЕ! Вы уверены, что хотите НАВСЕГДА удалить ${selectedOrders.size} заказ(ов)?\n\nЭто действие НЕЛЬЗЯ отменить!`
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    const doubleConfirm = confirm('Подтвердите еще раз: вы действительно хотите удалить эти заказы навсегда?')
+    if (!doubleConfirm) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/orders/permanent-delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ orderIds: Array.from(selectedOrders) })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success(`Успешно удалено навсегда ${data.deletedCount} заказ(ов)`)
+        setSelectedOrders(new Set())
+        fetchBinOrders()
+      } else {
+        const data = await response.json()
+        toast.error(`Ошибка: ${data.error || 'Ошибка удаления заказов'}`)
+      }
+    } catch (error) {
+      console.error('Permanent delete orders error:', error)
+      toast.error('Ошибка соединения с сервером')
+    }
+  }
+
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsCreating(true)
@@ -576,7 +619,9 @@ export default function MiddleAdminPage() {
         toast.success('Администратор успешно обновлен')
       } else {
         const data = await response.json()
-        toast.error(data.error || 'Ошибка обновления администратора')
+        toast.error(data.error || 'Ошибка обновления администратора', {
+          description: data.details || undefined
+        })
       }
     } catch (error) {
       console.error('Error updating admin:', error)
@@ -834,7 +879,6 @@ export default function MiddleAdminPage() {
         // We need to use a different endpoint or method for full update
         // Currently we only have PATCH for status/courier actions
         // Let's assume we can use the same POST endpoint but with an ID or a new PUT endpoint
-        // Since we don't have a full update endpoint, we might need to create one or use the bulk update one for single item
         // But bulk update is limited.
         // Let's use a new action 'update_details' on the [id] route or create a new route.
         // For now, let's use the [id] route with a custom action.
@@ -1254,7 +1298,9 @@ export default function MiddleAdminPage() {
         fetchData()
       } else {
         const data = await response.json()
-        toast.error(data.error || 'Ошибка обновления заказов')
+        toast.error(data.error || 'Ошибка обновления заказов', {
+          description: data.details || undefined
+        })
       }
     } catch (error) {
       console.error('Error bulk updating orders:', error)
@@ -3452,8 +3498,8 @@ export default function MiddleAdminPage() {
                             }
                           }}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Пароль
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Удалить
                         </Button>
                         <Button
                           variant="outline"
@@ -3813,7 +3859,7 @@ export default function MiddleAdminPage() {
                     selectedOrders={selectedOrders}
                     onSelectOrder={handleOrderSelect}
                     onSelectAll={handleSelectAllOrders}
-                    onDeleteSelected={handleDeleteSelectedOrders}
+                    onDeleteSelected={handlePermanentDeleteOrders}
                     onViewOrder={(order) => {
                       setSelectedOrder(order)
                       setIsOrderDetailsModalOpen(true)

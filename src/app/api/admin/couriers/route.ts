@@ -36,7 +36,12 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(couriers)
+    const transformedCouriers = couriers.map(courier => ({
+      ...courier,
+      allowedTabs: []
+    }))
+
+    return NextResponse.json(transformedCouriers)
   } catch (error) {
     console.error('Error fetching couriers:', error)
     return NextResponse.json({
@@ -56,11 +61,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const courierData = await request.json()
+    const { name, email, password } = await request.json()
+
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { error: 'Все поля обязательны' },
+        { status: 400 }
+      )
+    }
 
     // Validate email
     try {
-      emailSchema.parse(courierData.email)
+      emailSchema.parse(email)
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
@@ -69,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Validate password
     try {
-      passwordSchema.parse(courierData.password)
+      passwordSchema.parse(password)
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Check if email already exists
     const existingAdmin = await db.admin.findUnique({
-      where: { email: courierData.email }
+      where: { email: email }
     })
 
     if (existingAdmin) {
@@ -89,17 +101,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(courierData.password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10)
 
     // Create courier
     const newCourier = await db.admin.create({
       data: {
-        name: courierData.name,
-        email: courierData.email,
+        name: name,
+        email: email,
         password: hashedPassword,
         role: 'COURIER',
         isActive: true,
-        createdBy: user.id
+        createdBy: user.id,
+        allowedTabs: null
       },
       select: {
         id: true,
@@ -107,22 +120,31 @@ export async function POST(request: NextRequest) {
         email: true,
         role: true,
         isActive: true,
-        createdAt: true
+        createdAt: true,
+        allowedTabs: true
       }
     })
 
     // Log the action
-    await db.actionLog.create({
-      data: {
-        adminId: user.id,
-        action: 'CREATE_COURIER',
-        entityType: 'ADMIN',
-        entityId: newCourier.id,
-        description: `Created courier account: ${newCourier.name} (${newCourier.email})`
-      }
-    })
+    try {
+      await db.actionLog.create({
+        data: {
+          adminId: user.id,
+          action: 'CREATE_COURIER',
+          entityType: 'ADMIN',
+          entityId: newCourier.id,
+          description: `Created courier account: ${newCourier.name} (${newCourier.email})`
+        }
+      })
+    } catch (logError) {
+      console.error('Failed to create action log:', logError)
+      // Don't fail the request if logging fails
+    }
 
-    return NextResponse.json(newCourier)
+    return NextResponse.json({
+      ...newCourier,
+      allowedTabs: []
+    })
   } catch (error) {
     console.error('Error creating courier:', error)
 
@@ -130,12 +152,15 @@ export async function POST(request: NextRequest) {
       if (error.code === 'P2002') {
         return NextResponse.json({ error: 'Курьер с таким email уже существует' }, { status: 409 })
       }
+      if (error.code === 'P2003') {
+        return NextResponse.json({ error: 'Ошибка создания: неверный ID создателя' }, { status: 400 })
+      }
     }
 
     return NextResponse.json(
       {
         error: 'Внутренняя ошибка сервера',
-        ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )

@@ -136,6 +136,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Неверный формат номера телефона' }, { status: 400 })
     }
 
+    // Validate numeric fields
+    const parsedCalories = parseInt(calories)
+    if (isNaN(parsedCalories)) {
+      return NextResponse.json({ error: 'Калории должны быть числом' }, { status: 400 })
+    }
+
+    const parsedQuantity = quantity ? parseInt(quantity) : 1
+    if (isNaN(parsedQuantity)) {
+      return NextResponse.json({ error: 'Количество должно быть числом' }, { status: 400 })
+    }
+
+    // Validate date
+    if (date && isNaN(Date.parse(date))) {
+      return NextResponse.json({ error: 'Неверный формат даты' }, { status: 400 })
+    }
+
+    // Sanitize courierId
+    const sanitizedCourierId = (courierId === '' || courierId === 'null') ? null : courierId
+
     // Use transaction to prevent race condition in order number generation
     const newOrder = await db.$transaction(async (tx) => {
       let customer
@@ -175,12 +194,12 @@ export async function POST(request: NextRequest) {
           orderNumber: nextOrderNumber,
           customerId: customer.id,
           adminId: user.id,
-          courierId: courierId || (customer as any).defaultCourierId || null,
+          courierId: sanitizedCourierId || (customer as any).defaultCourierId || null,
           deliveryAddress,
           deliveryDate: date ? new Date(date) : null,
           deliveryTime: deliveryTime || '12:00',
-          quantity: quantity || 1,
-          calories: parseInt(calories),
+          quantity: parsedQuantity,
+          calories: parsedCalories,
           specialFeatures: specialFeatures || '',
           paymentStatus: paymentStatus || 'UNPAID',
           paymentMethod: paymentMethod || 'CASH',
@@ -216,6 +235,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           error: 'Заказ с таким номером уже существует'
         }, { status: 409 })
+      }
+      if (error.code === 'P2003') {
+        return NextResponse.json({
+          error: 'Указан неверный ID курьера или клиента'
+        }, { status: 400 })
       }
     }
 

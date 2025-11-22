@@ -242,7 +242,7 @@ export default function Home() {
                 type="button"
                 variant="outline"
                 className="w-full h-11 text-base font-medium border-2 hover:bg-secondary/50"
-                onClick={() => window.location.href = '/api/auth/signin?provider=google'}
+                onClick={() => signIn('google')}
               >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                   <path

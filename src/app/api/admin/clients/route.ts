@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching clients:', error)
     return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
-      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
@@ -148,8 +148,8 @@ export async function POST(request: NextRequest) {
         isActive: true,
         latitude,
         longitude,
-        defaultCourierId: defaultCourierId || null,
-        createdBy: user.role === 'MIDDLE_ADMIN' ? user.id : null
+        defaultCourierId: (defaultCourierId === '' || defaultCourierId === 'null') ? null : defaultCourierId,
+        createdBy: (user.role === 'MIDDLE_ADMIN' || user.role === 'LOW_ADMIN') ? user.id : null
       } as any,
       include: {
         defaultCourier: {
@@ -193,11 +193,16 @@ export async function POST(request: NextRequest) {
           error: 'Клиент с таким номером телефона уже существует'
         }, { status: 409 })
       }
+      if (error.code === 'P2003') {
+        return NextResponse.json({
+          error: 'Указан неверный ID курьера или создателя'
+        }, { status: 400 })
+      }
     }
 
     return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
-      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

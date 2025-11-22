@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthUser, hasRole } from '@/lib/auth-utils'
+import { Prisma } from '@prisma/client'
 
 export async function PATCH(
   request: NextRequest,
@@ -112,6 +113,28 @@ export async function PATCH(
           courierId
         } = body
 
+        // Validate numeric fields if provided
+        let parsedCalories
+        if (calories !== undefined) {
+          parsedCalories = parseInt(calories)
+          if (isNaN(parsedCalories)) {
+            return NextResponse.json({ error: 'Калории должны быть числом' }, { status: 400 })
+          }
+        }
+
+        let parsedQuantity
+        if (quantity !== undefined) {
+          parsedQuantity = parseInt(quantity)
+          if (isNaN(parsedQuantity)) {
+            return NextResponse.json({ error: 'Количество должно быть числом' }, { status: 400 })
+          }
+        }
+
+        // Validate date if provided
+        if (date && isNaN(Date.parse(date))) {
+          return NextResponse.json({ error: 'Неверный формат даты' }, { status: 400 })
+        }
+
         // Update customer info if name/phone changed and it's a manual order or we want to update the linked customer
         // For now, we'll just update the order fields. Updating the customer entity is a separate concern.
 
@@ -119,14 +142,14 @@ export async function PATCH(
           ...updateData,
           deliveryAddress,
           deliveryTime,
-          quantity: quantity ? parseInt(quantity.toString()) : undefined,
-          calories: calories ? parseInt(calories.toString()) : undefined,
+          quantity: parsedQuantity,
+          calories: parsedCalories,
           specialFeatures,
           paymentStatus,
           paymentMethod,
           isPrepaid,
           deliveryDate: date ? new Date(date) : undefined,
-          courierId: courierId === 'null' ? null : courierId
+          courierId: (courierId === 'null' || courierId === '') ? null : courierId
         }
         break
       default:
@@ -155,6 +178,15 @@ export async function PATCH(
     return NextResponse.json(transformedOrder)
   } catch (error) {
     console.error('Error updating order:', error)
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2003') {
+        return NextResponse.json({
+          error: 'Указан неверный ID курьера или клиента'
+        }, { status: 400 })
+      }
+    }
+
     return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
       ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })

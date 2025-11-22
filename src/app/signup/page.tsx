@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export default function SignUpPage() {
@@ -39,7 +40,7 @@ export default function SignUpPage() {
     }
 
     const handleGoogleSignUp = () => {
-        window.location.href = '/api/auth/signin?provider=google'
+        signIn('google')
     }
 
     const handleSignup = async (e: React.FormEvent) => {

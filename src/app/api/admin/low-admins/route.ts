@@ -38,7 +38,12 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(lowAdmins)
+    const transformedLowAdmins = lowAdmins.map(admin => ({
+      ...admin,
+      allowedTabs: admin.allowedTabs ? JSON.parse(admin.allowedTabs) : []
+    }))
+
+    return NextResponse.json(transformedLowAdmins)
   } catch (error) {
     console.error('Error fetching low admins:', error)
     return NextResponse.json(
@@ -135,20 +140,25 @@ export async function POST(request: NextRequest) {
         role,
         isActive: true,
         createdBy: user.id,
-        allowedTabs: allowedTabs || null
+        allowedTabs: allowedTabs ? JSON.stringify(allowedTabs) : null
       }
     })
 
     // Log the action
-    await db.actionLog.create({
-      data: {
-        adminId: user.id,
-        action: 'CREATE_ADMIN',
-        entityType: 'ADMIN',
-        entityId: newAdmin.id,
-        description: `Created ${role.toLowerCase()}: ${name}`
-      }
-    })
+    try {
+      await db.actionLog.create({
+        data: {
+          adminId: user.id,
+          action: 'CREATE_ADMIN',
+          entityType: 'ADMIN',
+          entityId: newAdmin.id,
+          description: `Created ${role.toLowerCase()}: ${name}`
+        }
+      })
+    } catch (logError) {
+      console.error('Failed to create action log:', logError)
+      // Don't fail the request if logging fails
+    }
 
     return NextResponse.json({
       id: newAdmin.id,
@@ -156,7 +166,8 @@ export async function POST(request: NextRequest) {
       name: newAdmin.name,
       role: newAdmin.role,
       isActive: newAdmin.isActive,
-      createdAt: newAdmin.createdAt
+      createdAt: newAdmin.createdAt,
+      allowedTabs: newAdmin.allowedTabs ? JSON.parse(newAdmin.allowedTabs) : []
     })
   } catch (error) {
     console.error('Error creating low admin:', error)
@@ -167,12 +178,15 @@ export async function POST(request: NextRequest) {
           error: 'Администратор с таким email уже существует'
         }, { status: 409 })
       }
+      if (error.code === 'P2003') {
+        return NextResponse.json({ error: 'Ошибка создания: неверный ID создателя' }, { status: 400 })
+      }
     }
 
     return NextResponse.json(
       {
         error: 'Внутренняя ошибка сервера',
-        ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )

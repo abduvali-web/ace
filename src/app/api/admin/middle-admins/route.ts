@@ -31,12 +31,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(middleAdmins)
+    const transformedAdmins = middleAdmins.map(admin => ({
+      ...admin,
+      allowedTabs: null
+    }))
+
+    return NextResponse.json(transformedAdmins)
   } catch (error) {
     console.error('Error fetching middle admins:', error)
     return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
-      ...(process.env.NODE_ENV === 'development' && { details: error instanceof Error ? error.message : 'Unknown error' })
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
@@ -59,7 +64,7 @@ export async function POST(request: NextRequest) {
       emailSchema.parse(email)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+        return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
       }
     }
 
@@ -68,7 +73,7 @@ export async function POST(request: NextRequest) {
       passwordSchema.parse(password)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+        return NextResponse.json({ error: error.issues[0].message }, { status: 400 })
       }
     }
 
@@ -97,15 +102,19 @@ export async function POST(request: NextRequest) {
     })
 
     // Log action
-    await db.actionLog.create({
-      data: {
-        adminId: user.id,
-        action: 'CREATE_ADMIN',
-        entityType: 'ADMIN',
-        entityId: newAdmin.id,
-        description: `Created middle admin ${newAdmin.name} (${newAdmin.email})`
-      }
-    })
+    try {
+      await db.actionLog.create({
+        data: {
+          adminId: user.id,
+          action: 'CREATE_ADMIN',
+          entityType: 'ADMIN',
+          entityId: newAdmin.id,
+          description: `Created middle admin ${newAdmin.name} (${newAdmin.email})`
+        }
+      })
+    } catch (logError) {
+      console.error('Failed to create action log:', logError)
+    }
 
     return NextResponse.json({
       id: newAdmin.id,
@@ -113,7 +122,8 @@ export async function POST(request: NextRequest) {
       name: newAdmin.name,
       role: newAdmin.role,
       isActive: newAdmin.isActive,
-      createdAt: newAdmin.createdAt
+      createdAt: newAdmin.createdAt,
+      allowedTabs: null
     })
   } catch (error: any) {
     console.error('Error creating middle admin:', error)
@@ -124,11 +134,16 @@ export async function POST(request: NextRequest) {
           error: 'Администратор с таким email уже существует'
         }, { status: 409 })
       }
+      if (error.code === 'P2003') {
+        return NextResponse.json({
+          error: 'Ошибка создания: неверный ID создателя'
+        }, { status: 400 })
+      }
     }
 
     return NextResponse.json({
       error: 'Внутренняя ошибка сервера',
-      ...(process.env.NODE_ENV === 'development' && { details: error.message })
+      details: error.message || 'Unknown error'
     }, { status: 500 })
   }
 }
