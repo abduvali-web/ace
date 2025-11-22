@@ -199,7 +199,7 @@ export default function CourierPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'IN_DELIVERY' })
+        body: JSON.stringify({ action: 'start_delivery' })
       })
 
       if (response.ok) {
@@ -231,7 +231,7 @@ export default function CourierPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'DELIVERED' })
+        body: JSON.stringify({ action: 'complete_delivery' })
       })
 
       if (response.ok) {
@@ -254,7 +254,7 @@ export default function CourierPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'PAUSED' })
+        body: JSON.stringify({ action: 'pause_delivery' })
       })
 
       if (response.ok) {
@@ -280,7 +280,7 @@ export default function CourierPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'IN_DELIVERY' })
+        body: JSON.stringify({ action: 'resume_delivery' })
       })
 
       if (response.ok) {
