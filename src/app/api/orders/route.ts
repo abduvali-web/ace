@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client'
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
-    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN', 'COURIER'])) {
+    if (!user || !hasRole(user, ['LOW_ADMIN', 'MIDDLE_ADMIN', 'SUPER_ADMIN', 'COURIER'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
@@ -120,12 +120,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
-    if (!user || !hasRole(user, ['MIDDLE_ADMIN', 'SUPER_ADMIN', 'COURIER'])) {
+    if (!user || !hasRole(user, ['LOW_ADMIN', 'MIDDLE_ADMIN', 'SUPER_ADMIN', 'COURIER'])) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { customerName, customerPhone, deliveryAddress, deliveryTime, quantity, calories, specialFeatures, paymentStatus, paymentMethod, isPrepaid, date, selectedClientId, courierId } = body
+    const { customerName, customerPhone, deliveryAddress, deliveryTime, quantity, calories, specialFeatures, paymentStatus, paymentMethod, isPrepaid, date, selectedClientId, courierId, latitude, longitude } = body
 
     if (!customerName || !customerPhone || !deliveryAddress || !calories) {
       return NextResponse.json({ error: 'Не все обязательные поля заполнены' }, { status: 400 })
@@ -171,7 +171,9 @@ export async function POST(request: NextRequest) {
               address: deliveryAddress,
               preferences: specialFeatures,
               orderPattern: 'manual',
-              isActive: false  // One-time order - client is disabled by default
+              isActive: false,  // One-time order - client is disabled by default
+              latitude: latitude ? parseFloat(String(latitude)) : null,
+              longitude: longitude ? parseFloat(String(longitude)) : null
             }
           })
         }
@@ -220,7 +222,9 @@ export async function POST(request: NextRequest) {
       customerName: newOrder.customer?.name || customerName,
       customerPhone: newOrder.customer?.phone || customerPhone,
       deliveryDate: date || new Date(newOrder.createdAt).toISOString().split('T')[0],
-      isAutoOrder: false
+      isAutoOrder: false,
+      latitude: latitude ? parseFloat(String(latitude)) : null,
+      longitude: longitude ? parseFloat(String(longitude)) : null
     }
 
     console.log(`✅ Created manual order: ${transformedOrder.customerName} (#${newOrder.orderNumber})`)

@@ -34,8 +34,13 @@ interface Order {
     name: string
     phone: string
   }
+  name?: string
+  phone?: string
+  customerName?: string
+  customerPhone?: string
   deliveryAddress: string
   deliveryTime: string
+  deliveryDate?: string
   quantity: number
   calories: number
   specialFeatures: string
@@ -43,12 +48,15 @@ interface Order {
   paymentMethod: string
   orderStatus: string
   isPrepaid: boolean
+  isAutoOrder?: boolean
   createdAt: string
 }
 
 interface Stats {
   successfulOrders: number
   failedOrders: number
+  pendingOrders: number
+  inDeliveryOrders: number
   prepaidOrders: number
   unpaidOrders: number
   cardOrders: number
@@ -64,6 +72,7 @@ interface Stats {
   orders3000: number
   singleItemOrders: number
   multiItemOrders: number
+  pausedOrders: number
 }
 
 export default function LowAdminPage() {
@@ -75,6 +84,8 @@ export default function LowAdminPage() {
   const [filters, setFilters] = useState({
     successful: true,
     failed: false,
+    pending: false,
+    inDelivery: false,
     prepaid: false,
     unpaid: false,
     card: false,
@@ -264,6 +275,32 @@ export default function LowAdminPage() {
                     <CardContent>
                       <div className="text-2xl font-bold">{stats.failedOrders}</div>
                       <p className="text-xs text-slate-500">Отменено</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, pending: true }) }}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        Ожидающие заказы
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+                      <p className="text-xs text-slate-500">В ожидании</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-none cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab('orders'); setFilters({ ...filters, inDelivery: true }) }}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        В доставке
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.inDeliveryOrders}</div>
+                      <p className="text-xs text-slate-500">На пути</p>
                     </CardContent>
                   </Card>
 

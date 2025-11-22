@@ -145,6 +145,7 @@ interface Stats {
   failedOrders: number
   pendingOrders: number
   inDeliveryOrders: number
+  pausedOrders: number
   prepaidOrders: number
   unpaidOrders: number
   cardOrders: number
@@ -979,7 +980,8 @@ export default function MiddleAdminPage() {
       if (response.ok) {
         setIsCreateCourierModalOpen(false)
         setCourierFormData({ name: '', email: '', password: '' })
-        // Show success message or refresh data
+        fetchData()
+        toast.success('Курьер успешно создан')
       } else {
         setCourierError(data.error || 'Ошибка создания курьера')
       }

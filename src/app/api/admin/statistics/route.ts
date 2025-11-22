@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
       failedOrders: allOrders.filter(o => o.orderStatus === 'FAILED').length,
       pendingOrders: allOrders.filter(o => o.orderStatus === 'PENDING').length,
       inDeliveryOrders: allOrders.filter(o => o.orderStatus === 'IN_DELIVERY').length,
+      pausedOrders: allOrders.filter(o => o.orderStatus === 'PAUSED').length,
       prepaidOrders: allOrders.filter(o => o.isPrepaid).length,
       unpaidOrders: allOrders.filter(o => !o.isPrepaid).length,
       cardOrders: allOrders.filter(o => o.paymentMethod === 'CARD').length,

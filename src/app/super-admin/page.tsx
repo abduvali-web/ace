@@ -5,7 +5,6 @@ import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { StatsCards } from '../middle-admin/components/StatsCards'
 import { HistoryTable } from '@/components/admin/HistoryTable'
 import { InterfaceSettings } from '@/components/admin/InterfaceSettings'
 import { Badge } from '@/components/ui/badge'
@@ -70,6 +69,7 @@ interface OrderStatistics {
   failedOrders: number
   pendingOrders: number
   inDeliveryOrders: number
+  pausedOrders: number
   prepaidOrders: number
   unpaidOrders: number
   cardOrders: number
