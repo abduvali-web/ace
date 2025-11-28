@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 
 const handler = NextAuth({
     providers: [
+        // Google OAuth Provider - force rebuild 2025-11-29
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
