@@ -13,20 +13,34 @@ const handler = NextAuth({
         async signIn({ user, account, profile }) {
             if (!user.email) return false
 
-            // Check if user exists in Admin table
-            const admin = await db.admin.findUnique({
-                where: { email: user.email },
-            })
+            try {
+                // Check if user exists in Admin table
+                let admin = await db.admin.findUnique({
+                    where: { email: user.email },
+                })
 
-            if (admin && admin.isActive) {
-                return true
+                // If admin doesn't exist, create a new MIDDLE_ADMIN
+                if (!admin) {
+                    admin = await db.admin.create({
+                        data: {
+                            email: user.email,
+                            name: user.name || user.email.split('@')[0],
+                            role: 'MIDDLE_ADMIN',
+                            isActive: true,
+                        },
+                    })
+                }
+
+                // Allow login if admin is active
+                if (admin && admin.isActive) {
+                    return true
+                }
+
+                return false // Deny login if inactive
+            } catch (error) {
+                console.error('Error in signIn callback:', error)
+                return false
             }
-
-            // Optional: Check if user exists in Customer table if you want customers to login via Google
-            // const customer = await db.customer.findUnique({ where: { email: user.email } })
-            // if (customer && customer.isActive) return true
-
-            return false // Deny login if email not found or inactive
         },
         async jwt({ token, user, account }) {
             if (user) {
