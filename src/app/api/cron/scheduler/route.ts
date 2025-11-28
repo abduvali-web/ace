@@ -94,6 +94,7 @@ export async function GET(req: Request) {
                             paymentStatus: 'UNPAID',
                             paymentMethod: 'CASH',
                             isPrepaid: false,
+                            isAutoOrder: true,
                             orderStatus: 'PENDING',
                         }
                     })

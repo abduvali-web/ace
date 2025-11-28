@@ -11,7 +11,7 @@ function verifyToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null
   const token = authHeader.substring(7)
-  try { return jwt.verify(token, JWT_SECRET) as any } catch { return null }
+  try { return jwt.verify(token, JWT_SECRET!) as any } catch { return null }
 }
 
 export async function GET(request: NextRequest) {
@@ -37,11 +37,6 @@ export async function GET(request: NextRequest) {
 
     let filteredOrders = orders
     if (user.role === 'COURIER') {
-      // filteredOrders = filteredOrders.filter(order => 
-      //   order.orderStatus === 'PENDING' || 
-      //   order.orderStatus === 'IN_DELIVERY' || 
-      //   order.orderStatus === 'PAUSED'
-      // )
       const today = new Date().toISOString().split('T')[0]
       filteredOrders = filteredOrders.filter(order => {
         const orderDate = order.deliveryDate ? new Date(order.deliveryDate).toISOString().split('T')[0] : new Date(order.createdAt).toISOString().split('T')[0]
@@ -64,8 +59,26 @@ export async function GET(request: NextRequest) {
           if (filters.unpaid && order.paymentStatus !== 'UNPAID') return false
           if (filters.card && order.paymentMethod !== 'CARD') return false
           if (filters.cash && order.paymentMethod !== 'CASH') return false
-          if (filters.autoOrders && false) return false
-          if (filters.manualOrders && true) return false
+
+          // Fix filter logic: if filter is ON, we want to SHOW it.
+          // But here we are returning FALSE to exclude.
+          // Logic: "If autoOrders filter is ON, and this is NOT auto order, should we exclude it?"
+          // Usually filters are "Show X". If multiple are checked, it's usually OR (Show X OR Y).
+          // But here it seems to be implemented as "If X is checked, only show X"?
+          // Let's assume standard "Filter by Type":
+          // If "Auto Orders" is checked and "Manual Orders" is unchecked -> Show ONLY Auto.
+          // If "Auto Orders" is unchecked and "Manual Orders" is checked -> Show ONLY Manual.
+          // If BOTH are checked -> Show BOTH.
+          // If BOTH are unchecked -> Show BOTH (default) or NONE? Usually default.
+
+          const showAuto = filters.autoOrders
+          const showManual = filters.manualOrders
+
+          if (showAuto || showManual) {
+            if (order.isAutoOrder && !showAuto) return false
+            if (!order.isAutoOrder && !showManual) return false
+          }
+
           if (filters.calories1200 && order.calories !== 1200) return false
           if (filters.calories1600 && order.calories !== 1600) return false
           if (filters.calories2000 && order.calories !== 2000) return false
@@ -84,7 +97,7 @@ export async function GET(request: NextRequest) {
       customerPhone: order.customer?.phone || 'Нет телефона',
       customer: { name: order.customer?.name || 'Неизвестный клиент', phone: order.customer?.phone || 'Нет телефона' },
       deliveryDate: order.deliveryDate ? new Date(order.deliveryDate).toISOString().split('T')[0] : new Date(order.createdAt).toISOString().split('T')[0],
-      isAutoOrder: true
+      // isAutoOrder is now in DB, no need to hardcode
     }))
 
     return NextResponse.json(transformedOrders)

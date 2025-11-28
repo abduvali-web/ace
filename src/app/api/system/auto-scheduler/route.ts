@@ -24,9 +24,9 @@ function isEligibleByPattern(orderPattern: string | null | undefined, date: Date
   }
 }
 
-function startOfDay(date: Date) { const d = new Date(date); d.setHours(0,0,0,0); return d }
-function endOfDay(date: Date) { const d = new Date(date); d.setHours(23,59,59,999); return d }
-function defaultDeliveryTime(): string { const h=11+Math.floor(Math.random()*3); const m=Math.floor(Math.random()*60); return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}` }
+function startOfDay(date: Date) { const d = new Date(date); d.setHours(0, 0, 0, 0); return d }
+function endOfDay(date: Date) { const d = new Date(date); d.setHours(23, 59, 59, 999); return d }
+function defaultDeliveryTime(): string { const h = 11 + Math.floor(Math.random() * 3); const m = Math.floor(Math.random() * 60); return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}` }
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
     const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
 
-    const customers = await db.customer.findMany({ where: { isActive: true }, select: { id:true, name:true, phone:true, address:true, orderPattern:true, preferences:true } })
+    const customers = await db.customer.findMany({ where: { isActive: true }, select: { id: true, name: true, phone: true, address: true, orderPattern: true, preferences: true } })
     const defaultAdmin = await db.admin.findFirst({ where: { role: 'SUPER_ADMIN' } })
     if (!defaultAdmin) return NextResponse.json({ error: 'Администратор не найден' }, { status: 400 })
 
@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
                 paymentStatus: 'UNPAID',
                 paymentMethod: 'CASH',
                 isPrepaid: false,
+                isAutoOrder: true,
                 orderStatus: 'PENDING'
               }
             })

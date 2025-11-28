@@ -5,18 +5,18 @@ import jwt from 'jsonwebtoken'
 async function verifyToken(token: string) {
   try {
     if (!token) return null
-    
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
-    
+
     // Get user from database
     const user = await db.admin.findUnique({
       where: { id: decoded.id }
     })
-    
+
     if (!user || !user.isActive) {
       return null
     }
-    
+
     return {
       id: user.id,
       email: user.email,
@@ -39,10 +39,10 @@ function getDayOfWeek(date: Date): string {
 async function orderExistsForDate(clientId: string, targetDate: Date): Promise<boolean> {
   const compareDate = new Date(targetDate)
   compareDate.setHours(0, 0, 0, 0)
-  
+
   const nextDay = new Date(compareDate)
   nextDay.setDate(nextDay.getDate() + 1)
-  
+
   const existingOrder = await db.order.findFirst({
     where: {
       customerId: clientId,
@@ -52,7 +52,7 @@ async function orderExistsForDate(clientId: string, targetDate: Date): Promise<b
       }
     }
   })
-  
+
   return !!existingOrder
 }
 
@@ -61,7 +61,7 @@ function generateDeliveryTime(): string {
   const now = new Date()
   const deliveryHour = 11 + Math.floor(Math.random() * 3) // 11:00 - 14:00
   const deliveryMinute = Math.floor(Math.random() * 60)
-  
+
   now.setHours(deliveryHour, deliveryMinute, 0, 0)
   return now.toTimeString().slice(0, 5)
 }
@@ -70,19 +70,19 @@ function generateDeliveryTime(): string {
 async function createAutoOrdersForClient(client: any, startDate: Date, endDate: Date): Promise<any[]> {
   const createdOrders = []
   const currentDate = new Date(startDate)
-  
+
   // Get the next order number
   const lastOrder = await db.order.findFirst({
     orderBy: {
       orderNumber: 'desc'
     }
   })
-  
+
   let nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1
-  
+
   while (currentDate <= endDate) {
     const dayOfWeek = getDayOfWeek(currentDate)
-    
+
     // Check if client should receive order on this day
     if (client.deliveryDays[dayOfWeek] && !(await orderExistsForDate(client.id, currentDate))) {
       try {
@@ -99,6 +99,7 @@ async function createAutoOrdersForClient(client: any, startDate: Date, endDate: 
             paymentMethod: 'CASH',
             orderStatus: 'PENDING',
             isPrepaid: false,
+            isAutoOrder: true,
             createdAt: new Date(currentDate)
           },
           include: {
@@ -133,11 +134,11 @@ async function createAutoOrdersForClient(client: any, startDate: Date, endDate: 
         console.error(`Error creating order for ${client.name} on ${currentDate.toDateString()}:`, error)
       }
     }
-    
+
     // Move to next day
     currentDate.setDate(currentDate.getDate() + 1)
   }
-  
+
   return createdOrders
 }
 
@@ -145,11 +146,11 @@ export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     const user = await verifyToken(token || '')
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -194,13 +195,13 @@ export async function POST(request: NextRequest) {
 
     // Create orders for the client
     const createdOrders = await createAutoOrdersForClient(
-      { 
-        ...client, 
+      {
+        ...client,
         deliveryDays: clientSettings.deliveryDays || {},
         calories: clientSettings.calories || 1200,
         specialFeatures: clientSettings.specialFeatures || ''
-      }, 
-      startDate, 
+      },
+      startDate,
       endDate
     )
 
@@ -228,11 +229,11 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     const user = await verifyToken(token || '')
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
     }
-    
+
     if (user.role !== 'MIDDLE_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
@@ -252,7 +253,7 @@ export async function GET(request: NextRequest) {
 
     // Get statistics for each client with auto orders enabled
     const clientStats = []
-    
+
     for (const client of clients) {
       let clientSettings = { autoOrdersEnabled: false, deliveryDays: {}, calories: 1200 }
       try {
@@ -268,18 +269,18 @@ export async function GET(request: NextRequest) {
         const today = new Date()
         const endDate = new Date()
         endDate.setDate(endDate.getDate() + 30)
-        
+
         const clientOrders = await createAutoOrdersForClient(
-          { 
-            ...client, 
+          {
+            ...client,
             deliveryDays: clientSettings.deliveryDays || {},
             calories: clientSettings.calories || 1200,
             specialFeatures: clientSettings.specialFeatures || ''
-          }, 
-          today, 
+          },
+          today,
           endDate
         )
-        
+
         clientStats.push({
           clientId: client.id,
           clientName: client.name,

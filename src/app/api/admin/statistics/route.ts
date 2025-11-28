@@ -10,7 +10,7 @@ function verifyToken(request: NextRequest) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null
   }
-  
+
   const token = authHeader.substring(7)
   try {
     return jwt.verify(token, JWT_SECRET) as any
@@ -29,38 +29,69 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get all orders
-    const allOrders = await db.order.findMany({
-      include: {
-        customer: {
-          select: {
-            orderPattern: true
-          }
-        }
-      }
-    })
+    // Calculate statistics using database aggregation for performance
+    const [
+      successfulOrders,
+      failedOrders,
+      pendingOrders,
+      inDeliveryOrders,
+      prepaidOrders,
+      unpaidOrders,
+      cardOrders,
+      cashOrders,
+      dailyCustomersOrders,
+      evenDayCustomersOrders,
+      oddDayCustomersOrders,
+      specialPreferenceCustomersOrders,
+      orders1200,
+      orders1600,
+      orders2000,
+      orders2500,
+      orders3000,
+      singleItemOrders,
+      multiItemOrders
+    ] = await Promise.all([
+      db.order.count({ where: { orderStatus: 'DELIVERED' } }),
+      db.order.count({ where: { orderStatus: 'FAILED' } }),
+      db.order.count({ where: { orderStatus: 'PENDING' } }),
+      db.order.count({ where: { orderStatus: 'IN_DELIVERY' } }),
+      db.order.count({ where: { isPrepaid: true } }),
+      db.order.count({ where: { isPrepaid: false } }),
+      db.order.count({ where: { paymentMethod: 'CARD' } }),
+      db.order.count({ where: { paymentMethod: 'CASH' } }),
+      db.order.count({ where: { customer: { orderPattern: 'daily' } } }),
+      db.order.count({ where: { customer: { orderPattern: 'every_other_day_even' } } }),
+      db.order.count({ where: { customer: { orderPattern: 'every_other_day_odd' } } }),
+      db.order.count({ where: { specialFeatures: { not: '' } } }), // Assuming empty string means no special features
+      db.order.count({ where: { calories: 1200 } }),
+      db.order.count({ where: { calories: 1600 } }),
+      db.order.count({ where: { calories: 2000 } }),
+      db.order.count({ where: { calories: 2500 } }),
+      db.order.count({ where: { calories: 3000 } }),
+      db.order.count({ where: { quantity: 1 } }),
+      db.order.count({ where: { quantity: { gte: 2 } } })
+    ])
 
-    // Calculate statistics
     const stats = {
-      successfulOrders: allOrders.filter(o => o.orderStatus === 'DELIVERED').length,
-      failedOrders: allOrders.filter(o => o.orderStatus === 'FAILED').length,
-      pendingOrders: allOrders.filter(o => o.orderStatus === 'PENDING').length,
-      inDeliveryOrders: allOrders.filter(o => o.orderStatus === 'IN_DELIVERY').length,
-      prepaidOrders: allOrders.filter(o => o.isPrepaid).length,
-      unpaidOrders: allOrders.filter(o => !o.isPrepaid).length,
-      cardOrders: allOrders.filter(o => o.paymentMethod === 'CARD').length,
-      cashOrders: allOrders.filter(o => o.paymentMethod === 'CASH').length,
-      dailyCustomers: allOrders.filter(o => o.customer && o.customer.orderPattern === 'daily').length,
-      evenDayCustomers: allOrders.filter(o => o.customer && o.customer.orderPattern === 'every_other_day_even').length,
-      oddDayCustomers: allOrders.filter(o => o.customer && o.customer.orderPattern === 'every_other_day_odd').length,
-      specialPreferenceCustomers: allOrders.filter(o => o.specialFeatures && o.specialFeatures !== '{}').length,
-      orders1200: allOrders.filter(o => o.calories === 1200).length,
-      orders1600: allOrders.filter(o => o.calories === 1600).length,
-      orders2000: allOrders.filter(o => o.calories === 2000).length,
-      orders2500: allOrders.filter(o => o.calories === 2500).length,
-      orders3000: allOrders.filter(o => o.calories === 3000).length,
-      singleItemOrders: allOrders.filter(o => o.quantity === 1).length,
-      multiItemOrders: allOrders.filter(o => o.quantity >= 2).length
+      successfulOrders,
+      failedOrders,
+      pendingOrders,
+      inDeliveryOrders,
+      prepaidOrders,
+      unpaidOrders,
+      cardOrders,
+      cashOrders,
+      dailyCustomers: dailyCustomersOrders, // Keeping key name for frontend compatibility
+      evenDayCustomers: evenDayCustomersOrders,
+      oddDayCustomers: oddDayCustomersOrders,
+      specialPreferenceCustomers: specialPreferenceCustomersOrders,
+      orders1200,
+      orders1600,
+      orders2000,
+      orders2500,
+      orders3000,
+      singleItemOrders,
+      multiItemOrders
     }
 
     return NextResponse.json(stats)

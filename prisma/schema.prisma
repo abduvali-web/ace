@@ -71,6 +71,7 @@ model Order {
   paymentMethod   PaymentMethod
   orderStatus     OrderStatus    @default(PENDING)
   isPrepaid       Boolean        @default(false)
+  isAutoOrder     Boolean        @default(false)
   deliveredAt     DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
