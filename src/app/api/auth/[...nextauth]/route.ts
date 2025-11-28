@@ -62,6 +62,13 @@ const handler = NextAuth({
             }
             return session
         },
+        async redirect({ url, baseUrl }) {
+            // If url is provided and is on the same site, use it
+            if (url.startsWith(baseUrl)) return url
+
+            // Default redirect based on role (fallback)
+            return `${baseUrl}/middle-admin`
+        },
     },
     pages: {
         signIn: '/login',
