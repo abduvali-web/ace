@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AdminSettingsProvider } from '@/contexts/AdminSettingsContext';
+import { SessionProvider } from "next-auth/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,8 +47,10 @@ export default function RootLayout({
       >
         <LanguageProvider>
           <AdminSettingsProvider>
-            {children}
-            <Toaster />
+            <SessionProvider>
+              {children}
+              <Toaster />
+            </SessionProvider>
           </AdminSettingsProvider>
         </LanguageProvider>
       </body>
