@@ -11,7 +11,12 @@ const handler = NextAuth({
     ],
     callbacks: {
         async signIn({ user, account, profile }) {
-            if (!user.email) return false
+            console.log('🔐 SignIn attempt:', { email: user.email, name: user.name })
+
+            if (!user.email) {
+                console.log('❌ No email provided')
+                return false
+            }
 
             try {
                 // Check if user exists in Admin table
@@ -19,8 +24,11 @@ const handler = NextAuth({
                     where: { email: user.email },
                 })
 
+                console.log('👤 Admin lookup result:', admin ? 'Found' : 'Not found')
+
                 // If admin doesn't exist, create a new MIDDLE_ADMIN
                 if (!admin) {
+                    console.log('➕ Creating new MIDDLE_ADMIN for:', user.email)
                     admin = await db.admin.create({
                         data: {
                             email: user.email,
@@ -29,16 +37,19 @@ const handler = NextAuth({
                             isActive: true,
                         },
                     })
+                    console.log('✅ Admin created successfully:', admin.id)
                 }
 
                 // Allow login if admin is active
                 if (admin && admin.isActive) {
+                    console.log('✅ Login approved for:', user.email)
                     return true
                 }
 
+                console.log('❌ Login denied - admin inactive:', user.email)
                 return false // Deny login if inactive
             } catch (error) {
-                console.error('Error in signIn callback:', error)
+                console.error('💥 Error in signIn callback:', error)
                 return false
             }
         },
