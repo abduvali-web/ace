@@ -26,6 +26,7 @@ export default function WebsiteBuilderPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [isPublishing, setIsPublishing] = useState(false)
     const [generatedSite, setGeneratedSite] = useState<any>(null)
+    const [connectedProviders, setConnectedProviders] = useState<string[]>([])
     const [activeTab, setActiveTab] = useState('create')
 
     // Load existing website on mount
@@ -35,9 +36,12 @@ export default function WebsiteBuilderPage() {
                 const res = await fetch('/api/admin/website')
                 if (res.ok) {
                     const data = await res.json()
-                    if (data) {
-                        setGeneratedSite(data)
-                        setSubdomain(data.subdomain)
+                    if (data.website) {
+                        setGeneratedSite(data.website)
+                        setSubdomain(data.website.subdomain)
+                    }
+                    if (data.connectedProviders) {
+                        setConnectedProviders(data.connectedProviders)
                     }
                 }
             } catch (e) { /* ignore */ }
@@ -381,9 +385,15 @@ export default function WebsiteBuilderPage() {
                                             <p className="text-sm text-muted-foreground">Required for Generation</p>
                                         </div>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => signIn("google")}>
-                                        Connect
-                                    </Button>
+                                    {connectedProviders.includes('google') ? (
+                                        <Button variant="outline" size="sm" disabled className="text-green-600 border-green-200 bg-green-50">
+                                            <Check className="w-4 h-4 mr-2" /> Connected
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" size="sm" onClick={() => signIn("google")}>
+                                            Connect
+                                        </Button>
+                                    )}
                                 </div>
 
                                 {/* GitHub Connection */}
@@ -399,10 +409,15 @@ export default function WebsiteBuilderPage() {
                                             <p className="text-sm text-muted-foreground">Source Code Hosting</p>
                                         </div>
                                     </div>
-                                    {/* Since backend handles tokens, we assume connected if logged in, or show Connect button if separate flow used */}
-                                    <Button variant="outline" size="sm" onClick={() => signIn("github")}>
-                                        Connect
-                                    </Button>
+                                    {connectedProviders.includes('github') ? (
+                                        <Button variant="outline" size="sm" disabled className="text-green-600 border-green-200 bg-green-50">
+                                            <Check className="w-4 h-4 mr-2" /> Connected
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" size="sm" onClick={() => signIn("github")}>
+                                            Connect
+                                        </Button>
+                                    )}
                                 </div>
 
                                 {/* Vercel Connection */}

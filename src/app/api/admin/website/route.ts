@@ -9,15 +9,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
-        const website = await db.website.findUnique({
-            where: { adminId: user.id }
+        const accounts = await db.account.findMany({
+            where: { userId: user.id },
+            select: { provider: true }
         })
+        const connectedProviders = accounts.map(a => a.provider)
 
-        if (!website) {
-            return NextResponse.json(null)
-        }
-
-        return NextResponse.json(website)
+        return NextResponse.json({
+            website,
+            connectedProviders
+        })
 
     } catch (error) {
         console.error('Error fetching website:', error)
