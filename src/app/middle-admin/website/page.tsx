@@ -78,14 +78,31 @@ export default function WebsiteBuilderPage() {
 
     const handlePublish = async () => {
         if (!generatedSite) return
-
         setIsPublishing(true)
-        // In production, this would trigger a Vercel deployment
-        // For now, the site is already "live" at /sites/[subdomain]
-        await new Promise(r => setTimeout(r, 1500)) // Simulate publish
-        setIsPublishing(false)
-        toast.success('Website published to Vercel!')
-        window.open(`/sites/${generatedSite.subdomain}`, '_blank')
+
+        try {
+            const res = await fetch('/api/admin/website/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subdomain: generatedSite.subdomain,
+                    siteContent: generatedSite.content, // Pass the full JSON content
+                    vercelToken: 'oauth' // Handled by backend linked account
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Deployment failed')
+
+            toast.success('Website successfully deployed to Vercel!')
+            window.open(data.deploymentUrl, '_blank')
+
+        } catch (error) {
+            console.error(error)
+            toast.error(error instanceof Error ? error.message : "Deployment failed")
+        } finally {
+            setIsPublishing(false)
+        }
     }
 
     const useExamplePrompt = () => {
