@@ -95,6 +95,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         })
                     }
 
+                    // Manually save the Account to persist tokens (replaces PrismaAdapter)
+                    await db.account.upsert({
+                        where: {
+                            provider_providerAccountId: {
+                                provider: account.provider,
+                                providerAccountId: account.providerAccountId
+                            }
+                        },
+                        update: {
+                            access_token: account.access_token,
+                            refresh_token: account.refresh_token,
+                            expires_at: account.expires_at,
+                            token_type: account.token_type,
+                            scope: account.scope,
+                            id_token: account.id_token,
+                            session_state: account.session_state as string,
+                        },
+                        create: {
+                            userId: admin.id,
+                            type: account.type,
+                            provider: account.provider,
+                            providerAccountId: account.providerAccountId,
+                            access_token: account.access_token,
+                            refresh_token: account.refresh_token,
+                            expires_at: account.expires_at,
+                            token_type: account.token_type,
+                            scope: account.scope,
+                            id_token: account.id_token,
+                            session_state: account.session_state as string,
+                        }
+                    })
+
                     // Check if trial has expired
                     if (admin.trialEndsAt && new Date() > admin.trialEndsAt && !admin.isActive) {
                         console.log("Trial expired")
