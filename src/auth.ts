@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import authConfig from "./auth.config"
+import { PrismaAdapter } from "@auth/prisma-adapter"
 import Credentials from "next-auth/providers/credentials"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
@@ -9,6 +10,7 @@ import GitHub from "next-auth/providers/github"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
+    adapter: PrismaAdapter(db),
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
