@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Globe, Sparkles, ExternalLink, Eye, Rocket, BookOpen, Check, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { SiteContent } from '@/components/site/SiteContent'
 
 const EXAMPLE_PROMPT = `Create main page with how healthy food can improve our daily life. Create buttons to change languages between Uzbek, Russian, English. Add login button and prices list with detailed pricing plans for healthy food company. Redirect user to phone number 998977087373 when they click apply buttons at bottom of every price plan. At top of site add connect button to redirect to phone number 998977087373. After login show every client their current plan with expiry timer, today's menu, order status (kitchen/delivery), estimated delivery time, and calorie tracking (calories lost/gained using formula: client calories minus client order numbers multiplied by client order calories). Only after 30 days from client creation show "Buy Now - 50% Discount" button with countdown timer that expires after 30 days. Redirect to phone number when clicked. All website content must be available in three languages with language switch button. Also create chat window where only my clients can chat with each other.`
 
@@ -105,12 +106,16 @@ export default function WebsiteBuilderPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="create" className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4" /> Create
                     </TabsTrigger>
                     <TabsTrigger value="preview" className="flex items-center gap-2" disabled={!generatedSite}>
                         <Eye className="w-4 h-4" /> Preview
+                    </TabsTrigger>
+                    <TabsTrigger value="deploy" className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-600">
+                        <Rocket className="w-4 h-4 mr-2" />
+                        Deploy
                     </TabsTrigger>
                     <TabsTrigger value="showcase" className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4" /> Showcase
