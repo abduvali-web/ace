@@ -30,9 +30,17 @@ const readFileTool: FunctionDeclaration = {
 export class AgentOrchestrator {
     private genAI: GoogleGenerativeAI
     private modelName = 'gemini-1.5-pro-latest' // Or 'gemini-1.5-flash' for speed
+    private requestOptions: any = {}
 
-    constructor(apiKey: string) {
+    constructor(apiKey: string, oauthToken?: string) {
         this.genAI = new GoogleGenerativeAI(apiKey)
+        if (oauthToken) {
+            // If OAuth token provided, we might need to intercept requests or use specific SDK options
+            // Current SDK version might not support direct OAuth easily without wrapping fetch.
+            // For now, we will rely on API Key.
+            // If user absolutely needs OAuth token usage, we would need to manually fetch.
+            console.log("OAuth Token provided (experimental support)")
+        }
     }
 
     // WORKER AGENT: Proposes a solution

@@ -7,6 +7,14 @@ export default {
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            authorization: {
+                params: {
+                    scope: "https://www.googleapis.com/auth/generative-language.retriever https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
+                    prompt: "consent",
+                    access_type: "offline",
+                    response_type: "code"
+                }
+            }
         }),
         GitHub({
             clientId: process.env.GITHUB_CLIENT_ID!,
