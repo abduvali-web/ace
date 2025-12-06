@@ -535,11 +535,27 @@ export default function CourierPage() {
           </TabsContent>
 
           <TabsContent value="chat">
-            {courierData && <ChatTab />}
+            {courierData ? (
+              <ChatTab />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                <p>Загрузка данных чата...</p>
+                <p className="text-xs mt-1">Если загрузка идет долго, попробуйте обновить страницу.</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="profile">
-            {courierData && <CourierProfile courier={courierData} />}
+            {courierData ? (
+              <CourierProfile courier={courierData} />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                <p>Загрузка профиля...</p>
+                <p className="text-xs mt-1">Проверьте подключение к интернету.</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>
