@@ -8,9 +8,17 @@ import bcrypt from "bcryptjs"
 import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
 
+// Custom Adapter to handle Admin vs User model mismatch
+function CustomPrismaAdapter(p: any) {
+    return PrismaAdapter({
+        ...p,
+        user: p.admin, // Map 'user' calls to 'admin' table
+    })
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
-    adapter: PrismaAdapter(db),
+    adapter: CustomPrismaAdapter(db),
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
