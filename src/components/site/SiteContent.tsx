@@ -48,6 +48,31 @@ const iconMap: Record<string, any> = {
     Zap, Shield, Heart, Leaf, MessageCircle
 }
 
+// Define Interface locally to avoid build issues
+interface GeneratedSiteContent {
+    themeColor: string
+    chatEnabled: boolean
+    hero: {
+        title: { [key: string]: string }
+        subtitle: { [key: string]: string }
+        cta: { [key: string]: string }
+    }
+    features: Array<{
+        title: { [key: string]: string }
+        description: { [key: string]: string }
+        icon: string
+    }>
+    pricing: Array<{
+        name: { [key: string]: string }
+        price: string
+        features: Array<{ [key: string]: string }>
+    }>
+    about: {
+        title: { [key: string]: string }
+        description: { [key: string]: string }
+    }
+}
+
 interface SiteContentProps {
     content: GeneratedSiteContent
     subdomain: string
