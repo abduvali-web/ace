@@ -3,32 +3,34 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const apiKey = process.env.GEMINI_API_KEY
 
 if (!apiKey) {
-    console.warn('GEMINI_API_KEY is not defined. AI generation will fail.')
+  console.warn('GEMINI_API_KEY is not defined. AI generation will fail.')
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || '')
 
 export interface GeneratedSiteContent {
-    hero: {
-        title: { uz: string; ru: string; en: string }
-        subtitle: { uz: string; ru: string; en: string }
-        cta: { uz: string; ru: string; en: string }
-    }
-    features: Array<{
-        title: { uz: string; ru: string; en: string }
-        description: { uz: string; ru: string; en: string }
-        icon: string
-    }>
-    pricing: Array<{
-        name: { uz: string; ru: string; en: string }
-        price: string
-        features: Array<{ uz: string; ru: string; en: string }>
-    }>
-    about: {
-        title: { uz: string; ru: string; en: string }
-        description: { uz: string; ru: string; en: string }
-    }
-    chatEnabled: boolean
+  hero: {
+    title: { uz: string; ru: string; en: string }
+    subtitle: { uz: string; ru: string; en: string }
+    cta: { uz: string; ru: string; en: string }
+  }
+  features: Array<{
+    title: { uz: string; ru: string; en: string }
+    description: { uz: string; ru: string; en: string }
+    icon: string
+  }>
+  pricing: Array<{
+    name: { uz: string; ru: string; en: string }
+    price: string
+    features: Array<{ uz: string; ru: string; en: string }>
+  }>
+  about: {
+    title: { uz: string; ru: string; en: string }
+    description: { uz: string; ru: string; en: string }
+  }
+  chatEnabled: boolean
+  authRequired?: boolean
+  themeColor?: string
 }
 
 // Database schema context for Gemini to understand the data structure
@@ -72,24 +74,24 @@ const DATABASE_CONTEXT = `
 
 // Check if prompt mentions chat or community features
 function detectChatRequest(prompt: string): boolean {
-    const chatKeywords = [
-        'chat', 'чат', 'suhbat', 'community', 'сообщество', 'jamoa',
-        'message', 'сообщение', 'xabar', 'talk', 'communicate', 'discuss'
-    ]
-    const lowerPrompt = prompt.toLowerCase()
-    return chatKeywords.some(keyword => lowerPrompt.includes(keyword))
+  const chatKeywords = [
+    'chat', 'чат', 'suhbat', 'community', 'сообщество', 'jamoa',
+    'message', 'сообщение', 'xabar', 'talk', 'communicate', 'discuss'
+  ]
+  const lowerPrompt = prompt.toLowerCase()
+  return chatKeywords.some(keyword => lowerPrompt.includes(keyword))
 }
 
 export async function generateWebsiteContent(prompt: string): Promise<GeneratedSiteContent> {
-    if (!apiKey) {
-        throw new Error('GEMINI_API_KEY is missing')
-    }
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is missing')
+  }
 
-    const chatEnabled = detectChatRequest(prompt)
+  const chatEnabled = detectChatRequest(prompt)
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-    const systemPrompt = `
+  const systemPrompt = `
 You are an expert web designer and copywriter for a food delivery management platform.
 
 ${DATABASE_CONTEXT}
@@ -140,19 +142,19 @@ Ensure the tone is professional, engaging, and persuasive.
 For icons, use valid Lucide React icon names (e.g., "Zap", "Shield", "Heart", "Leaf", "MessageCircle").
 `
 
-    const result = await model.generateContent(systemPrompt)
-    const response = await result.response
-    const text = response.text()
+  const result = await model.generateContent(systemPrompt)
+  const response = await result.response
+  const text = response.text()
 
-    try {
-        // Clean up markdown code blocks if present
-        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        const parsed = JSON.parse(jsonStr)
-        // Ensure chatEnabled is set based on our detection
-        parsed.chatEnabled = chatEnabled
-        return parsed
-    } catch (error) {
-        console.error('Failed to parse AI response:', text)
-        throw new Error('Failed to generate valid JSON content')
-    }
+  try {
+    // Clean up markdown code blocks if present
+    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim()
+    const parsed = JSON.parse(jsonStr)
+    // Ensure chatEnabled is set based on our detection
+    parsed.chatEnabled = chatEnabled
+    return parsed
+  } catch (error) {
+    console.error('Failed to parse AI response:', text)
+    throw new Error('Failed to generate valid JSON content')
+  }
 }

@@ -45,30 +45,32 @@ export default function WebsiteBuilderPage() {
     }, [])
 
     const handleGenerate = async () => {
-        if (!prompt || !subdomain) {
-            toast.error('Please fill in all fields')
+        if (!prompt.trim()) {
+            toast.error('Please enter a prompt')
             return
         }
-
         setIsLoading(true)
         try {
-            const response = await fetch('/api/admin/website/generate', {
+            // Call the Multi-Agent Orchestrator
+            const res = await fetch('/api/admin/website/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, subdomain })
+                body: JSON.stringify({ prompt })
             })
 
-            const data = await response.json()
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Generation failed')
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to generate website')
-            }
-
-            setGeneratedSite(data)
+            setGeneratedSite({
+                subdomain: prompt.substring(0, 10).replace(/[^a-z0-9]/gi, '').toLowerCase() + '-' + Math.floor(Math.random() * 1000),
+                content: data.data,
+                chatEnabled: data.data.chatEnabled
+            })
             setActiveTab('preview')
-            toast.success('Website generated successfully!')
+            toast.success('Website generated with 6-Agent Team!')
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Something went wrong')
+            console.error(error)
+            toast.error(error instanceof Error ? error.message : "AI Generation failed")
         } finally {
             setIsLoading(false)
         }
@@ -167,7 +169,7 @@ export default function WebsiteBuilderPage() {
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Generating...
+                                            Generating with AI Agents...
                                         </>
                                     ) : (
                                         <>
@@ -176,6 +178,7 @@ export default function WebsiteBuilderPage() {
                                         </>
                                     )}
                                 </Button>
+
                             </CardFooter>
                         </Card>
 
