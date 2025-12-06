@@ -1,0 +1,49 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - button "Switch language" [ref=e6]:
+      - img
+      - generic [ref=e7]: Switch language
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Вход в систему
+        - generic [ref=e12]: Введите свои данные для входа
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - generic [ref=e16]: Email
+            - generic [ref=e17]:
+              - img [ref=e18]
+              - textbox "Email" [ref=e21]:
+                - /placeholder: admin@autofood.uz
+          - generic [ref=e22]:
+            - generic [ref=e23]:
+              - generic [ref=e24]: Пароль
+              - link "Забыли пароль?" [ref=e25] [cursor=pointer]:
+                - /url: "#"
+            - generic [ref=e26]:
+              - img [ref=e27]
+              - textbox "Пароль" [ref=e30]
+          - button "Войти в систему" [ref=e31]:
+            - text: Войти в систему
+            - img
+        - generic [ref=e36]: Or continue with
+        - button "Continue with Google" [ref=e37]:
+          - img
+          - text: Continue with Google
+      - generic [ref=e38]:
+        - paragraph [ref=e39]:
+          - text: Don't have an account?
+          - link "Sign up for free" [ref=e40] [cursor=pointer]:
+            - /url: /signup
+        - paragraph [ref=e41]:
+          - text: Защищено reCAPTCHA и применяются
+          - link "Политика конфиденциальности" [ref=e42] [cursor=pointer]:
+            - /url: "#"
+          - text: и
+          - link "Условия использования" [ref=e43] [cursor=pointer]:
+            - /url: "#"
+  - region "Notifications alt+T"
+```

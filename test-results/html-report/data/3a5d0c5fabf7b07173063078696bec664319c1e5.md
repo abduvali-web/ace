@@ -1,0 +1,73 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - heading "AutoFood" [level=1] [ref=e15]
+      - heading "Добро пожаловать AutoFood" [level=2] [ref=e16]:
+        - text: Добро пожаловать
+        - text: AutoFood
+      - paragraph [ref=e17]: Введите свои данные для входа
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - img [ref=e21]
+          - generic [ref=e24]:
+            - heading "Безопасность" [level=3] [ref=e25]
+            - paragraph [ref=e26]: Защита данных уровня Enterprise
+        - generic [ref=e27]:
+          - img [ref=e29]
+          - generic [ref=e31]:
+            - heading "Аналитика" [level=3] [ref=e32]
+            - paragraph [ref=e33]: Детальные отчеты в реальном времени
+    - generic [ref=e36]:
+      - button "Switch language" [ref=e39]:
+        - img
+        - generic [ref=e40]: Switch language
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: Вход в систему
+          - generic [ref=e45]: Введите свои данные для входа
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - generic [ref=e49]: Email
+              - generic [ref=e50]:
+                - img [ref=e51]
+                - textbox "Email" [ref=e54]:
+                  - /placeholder: admin@autofood.uz
+                  - text: super@admin.com
+            - generic [ref=e55]:
+              - generic [ref=e56]:
+                - generic [ref=e57]: Пароль
+                - link "Забыли пароль?" [ref=e58] [cursor=pointer]:
+                  - /url: "#"
+              - generic [ref=e59]:
+                - img [ref=e60]
+                - textbox "Пароль" [ref=e63]: Test123!@#
+            - button "Загрузка..." [disabled]:
+              - img
+              - text: Загрузка...
+          - generic [ref=e68]: Or continue with
+          - button "Continue with Google" [ref=e69]:
+            - img
+            - text: Continue with Google
+        - generic [ref=e70]:
+          - paragraph [ref=e71]:
+            - text: Don't have an account?
+            - link "Sign up for free" [ref=e72] [cursor=pointer]:
+              - /url: /signup
+          - paragraph [ref=e73]:
+            - text: Защищено reCAPTCHA и применяются
+            - link "Политика конфиденциальности" [ref=e74] [cursor=pointer]:
+              - /url: "#"
+            - text: и
+            - link "Условия использования" [ref=e75] [cursor=pointer]:
+              - /url: "#"
+  - region "Notifications alt+T"
+  - alert [ref=e76]
+  - button "Open Next.js Dev Tools" [ref=e82] [cursor=pointer]:
+    - img [ref=e83]
+```
