@@ -1643,7 +1643,7 @@ export default function MiddleAdminPage() {
         </div>
 
         <Tabs defaultValue="orders" className="space-y-6" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto gap-2 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 h-auto gap-2 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
             <TabsTrigger
               value="orders"
               className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
@@ -1669,6 +1669,13 @@ export default function MiddleAdminPage() {
               Корзина
             </TabsTrigger>
             <TabsTrigger
+              value="website"
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Сайт
+            </TabsTrigger>
+            <TabsTrigger
               value="statistics"
               className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
             >
@@ -1684,7 +1691,7 @@ export default function MiddleAdminPage() {
             </TabsTrigger>
             <TabsTrigger
               value="profile"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
+              className="hidden lg:flex data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm transition-all duration-200"
             >
               <User className="w-4 h-4 mr-2" />
               Профиль
