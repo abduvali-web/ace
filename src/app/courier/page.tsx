@@ -22,7 +22,8 @@ import {
   ChevronRight,
   ChevronLeft,
   User,
-  MessageSquare
+  MessageSquare,
+  Loader2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
