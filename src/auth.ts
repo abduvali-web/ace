@@ -8,17 +8,10 @@ import bcrypt from "bcryptjs"
 import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
 
-// Custom Adapter to handle Admin vs User model mismatch
-function CustomPrismaAdapter(p: any) {
-    return PrismaAdapter({
-        ...p,
-        user: p.admin, // Map 'user' calls to 'admin' table
-    })
-}
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
-    adapter: CustomPrismaAdapter(db),
+    // Adapter removed to prevent conflict with Credentials provider and custom schema
+    // We handle user creation and account linking manually in callbacks
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -142,6 +135,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                             data: { googleId: account.providerAccountId }
                         })
                     }
+
+                    // Manually save the Account to persist tokens (replaces PrismaAdapter)
+                    await db.account.upsert({
+                        where: {
+                            provider_providerAccountId: {
+                                provider: account.provider,
+                                providerAccountId: account.providerAccountId
+                            }
+                        },
+                        update: {
+                            access_token: account.access_token,
+                            refresh_token: account.refresh_token,
+                            expires_at: account.expires_at,
+                            token_type: account.token_type,
+                            scope: account.scope,
+                            id_token: account.id_token,
+                            session_state: account.session_state as string,
+                        },
+                        create: {
+                            userId: admin.id,
+                            type: account.type,
+                            provider: account.provider,
+                            providerAccountId: account.providerAccountId,
+                            access_token: account.access_token,
+                            refresh_token: account.refresh_token,
+                            expires_at: account.expires_at,
+                            token_type: account.token_type,
+                            scope: account.scope,
+                            id_token: account.id_token,
+                            session_state: account.session_state as string,
+                        }
+                    })
 
                     // Check if trial has expired
                     if (admin.trialEndsAt && new Date() > admin.trialEndsAt && !admin.isActive) {
