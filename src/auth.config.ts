@@ -11,8 +11,26 @@ export default {
         GitHub({
             clientId: process.env.GITHUB_CLIENT_ID!,
             clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            authorization: { params: { scope: "read:user user:email repo" } }, // Request repo scope
-        })
+            authorization: { params: { scope: "read:user user:email repo" } },
+        }),
+        {
+            id: "vercel",
+            name: "Vercel",
+            type: "oauth",
+            clientId: process.env.VERCEL_CLIENT_ID,
+            clientSecret: process.env.VERCEL_CLIENT_SECRET,
+            authorization: { params: { scope: "project:write" } },
+            token: "https://api.vercel.com/v2/oauth/access_token",
+            userinfo: "https://api.vercel.com/www/user",
+            profile(profile) {
+                return {
+                    id: profile.user.id,
+                    name: profile.user.name,
+                    email: profile.user.email,
+                    image: profile.user.avatar,
+                }
+            },
+        }
     ],
     pages: {
         signIn: "/login",
