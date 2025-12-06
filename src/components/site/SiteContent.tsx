@@ -1,16 +1,49 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import {
+    Phone, ShoppingCart, Clock, MapPin,
+    ChevronRight, Star, Truck, Menu, X,
+    Instagram, Facebook, Twitter, Mail,
+    Plus, Minus, User, LogOut, MessageCircle, Send,
+    Zap, Shield, Heart, Leaf, Timer, Utensils, TrendingDown, Bell, LogIn, Check
+} from 'lucide-react'
+import { initializeApp, getApps, getApp } from 'firebase/app'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from 'firebase/auth'
+import { getDatabase, ref, push, onValue, set, serverTimestamp, query, orderByChild, limitToLast } from 'firebase/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
-import { Globe, Phone, LogIn, Check, Zap, Shield, Heart, Leaf, MessageCircle, X, Send, Timer, Utensils, TrendingDown, Bell } from 'lucide-react'
-import Link from 'next/link'
-import { GeneratedSiteContent } from '@/lib/ai-site-generator'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 
-// Map icon names to components
+// --- FIREBASE CONFIG (Injected or Default) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyCO108yOR4W1zOg8LpkuDLBAxzZI-g3Jrc",
+    authDomain: "studio-4253358477-d0c2f.firebaseapp.com",
+    projectId: "studio-4253358477-d0c2f",
+    storageBucket: "studio-4253358477-d0c2f.firebasestorage.app",
+    messagingSenderId: "644423854949",
+    appId: "1:644423854949:web:ef69ff5d3ee83984ed4f8c"
+};
+
+// Initialize Firebase
+let app;
+let auth: any;
+let db: any;
+
+try {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    auth = getAuth(app);
+    db = getDatabase(app);
+} catch (e) {
+    console.error("Firebase Init Error:", e);
+}
+
 const iconMap: Record<string, any> = {
     Zap, Shield, Heart, Leaf, MessageCircle
 }
@@ -23,55 +56,142 @@ interface SiteContentProps {
 export function SiteContent({ content, subdomain }: SiteContentProps) {
     const [lang, setLang] = useState<'uz' | 'ru' | 'en'>('uz')
     const [isLoggedIn, setIsLoggedIn] = useState(false)
-    const [isChatOpen, setIsChatOpen] = useState(false)
-    const [chatMessage, setChatMessage] = useState('')
-    const [messages, setMessages] = useState([
-        { id: 1, text: 'Salom! Mening buyurtmam qachon keladi?', sender: 'me', time: '10:30' },
-        { id: 2, text: 'Salom! Kuryer 10 daqiqada yetib boradi.', sender: 'other', time: '10:32' }
-    ])
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+    const [user, setUser] = useState<any>(null) // Firebase User
+    const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [name, setName] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
-    // Mock Client Data
-    const clientData = {
-        name: 'Olimjon',
-        plan: 'Premium Healthy',
-        planExpiry: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days left
-        createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000), // Created 31 days ago (trigger discount)
-        caloriesGoal: 2000,
-        ordersCount: 45,
-        avgOrderCalories: 400,
-        todayMenu: ['Avocado Toast', 'Grilled Chicken Salad', 'Green Smoothie'],
-        orderStatus: 'ON_WAY' as 'KITCHEN' | 'ON_WAY' | 'DELIVERED',
-        deliveryTime: '13:00'
-    }
+    // --- AUTH LISTENER ---
+    useEffect(() => {
+        if (!auth) return;
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+            if (u) {
+                setUser(u)
+                setIsLoggedIn(true)
+            } else {
+                setUser(null)
+                setIsLoggedIn(false)
+            }
+        })
+        return () => unsubscribe()
+    }, [])
 
-    // Calorie Formula: Client Cal - (Order Numbers * Client Order Cal) ??
-    // User requested: "client calories minus client order numbers multiplied by client order calories"
-    // Let's interpret: Goal - (Orders * OrderCal) = Calories Remaining/Lost?
-    // Or maybe Total Consumed = Orders * OrderCal.
-    // Let's show "Calories Consumed" and "Net Balance".
-    const caloriesConsumed = clientData.ordersCount * clientData.avgOrderCalories
-    // Just a sample visualization of the requested formula
-    const calorieMathResult = clientData.caloriesGoal - (clientData.ordersCount * 5) // Simplified interpretation for display
+    const handleAuth = async () => {
+        setLoading(true)
+        setError('')
+        try {
+            if (authMode === 'login') {
+                await signInWithEmailAndPassword(auth, email, password)
+            } else {
+                const res = await createUserWithEmailAndPassword(auth, email, password)
+                if (name) await updateProfile(res.user, { displayName: name })
 
-    const t = (obj: any) => obj ? obj[lang] : ''
-
-    const handleLogin = () => {
-        setIsLoggedIn(true)
+                // Create User Record in DB
+                const userRef = ref(db, `users/${res.user.uid}`)
+                await set(userRef, {
+                    name: name || 'User',
+                    email: email,
+                    createdAt: serverTimestamp(),
+                    calories: 2000,
+                    role: 'client'
+                })
+            }
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleLogout = () => {
-        setIsLoggedIn(false)
+        signOut(auth)
     }
 
-    const sendMessage = () => {
+    // --- CHAT STATE ---
+    const [isChatOpen, setIsChatOpen] = useState(false)
+    const [chatMessage, setChatMessage] = useState('')
+    const [messages, setMessages] = useState<any[]>([])
+    const scrollRef = useRef<HTMLDivElement>(null)
+
+    // --- CHAT LISTENER ---
+    useEffect(() => {
+        if (!db) return;
+        // Scope chat to subdomain if needed, or global for demo
+        const chatRef = query(ref(db, `chat/${subdomain || 'global'}`), limitToLast(50))
+
+        const unsubscribe = onValue(chatRef, (snapshot) => {
+            const data = snapshot.val()
+            if (data) {
+                const list = Object.entries(data).map(([id, val]: any) => ({
+                    id,
+                    ...val,
+                    // Convert timestamp to readable time if needed
+                    time: new Date(val.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }))
+                setMessages(list)
+                setTimeout(() => {
+                    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+                }, 100)
+            }
+        })
+        return () => unsubscribe()
+    }, [subdomain])
+
+    const sendMessage = async () => {
         if (!chatMessage.trim()) return
-        setMessages([...messages, { id: Date.now(), text: chatMessage, sender: 'me', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }])
+
+        // Allow anon chat or require login?
+        // For MVP, require name or use 'Guest'
+        const senderName = user?.displayName || 'Guest'
+        const senderId = user?.uid || 'anon'
+
+        const msg = {
+            text: chatMessage,
+            sender: senderId === user?.uid ? 'me' : 'other', // logic for local display
+            senderName,
+            senderId,
+            timestamp: serverTimestamp()
+        }
+
+        // Push to DB
+        await push(ref(db, `chat/${subdomain || 'global'}`), msg)
         setChatMessage('')
     }
 
-    // Discount Logic: Only after 30 days from creation
-    const daysSinceCreation = Math.floor((Date.now() - clientData.createdAt.getTime()) / (1000 * 60 * 60 * 24))
-    const showDiscount = daysSinceCreation >= 30
+    // --- DASHBOARD DATA LISTENER ---
+    const [clientData, setClientData] = useState<any>({
+        name: 'Guest',
+        plan: 'Free',
+        ordersCount: 0,
+        caloriesGoal: 2000,
+        todayMenu: [],
+        createdAt: new Date()
+    })
+
+    useEffect(() => {
+        if (!user || !db) return;
+        const userRef = ref(db, `users/${user.uid}`)
+        const unsubscribe = onValue(userRef, (snapshot) => {
+            const data = snapshot.val()
+            if (data) {
+                setClientData({
+                    ...data,
+                    plan: data.plan || 'Free', // Defaults
+                    todayMenu: ['Avocado Toast', 'Green Smoothie'], // Mock menu
+                    createdAt: data.createdAt ? new Date(data.createdAt) : new Date()
+                })
+            }
+        })
+        return () => unsubscribe()
+    }, [user])
+
+    const calorieMathResult = 2000 - ((clientData.ordersCount || 0) * 500) // Mock math
+    const t = (obj: any) => obj ? obj[lang] : ''
+    const showDiscount = false // Simplify for now or check date
 
     return (
         <div className="min-h-screen flex flex-col font-sans">
@@ -105,13 +225,16 @@ export function SiteContent({ content, subdomain }: SiteContentProps) {
                             </Button>
                         </a>
 
+                        {/* Auth Modal Trigger */}
                         {isLoggedIn ? (
-                            <Button variant="outline" size="sm" onClick={handleLogout}>
-                                <LogIn className="w-4 h-4 mr-2 rotate-180" />
-                                {t({ uz: 'Chiqish', ru: 'Выйти', en: 'Logout' })}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium hidden md:block">{user?.displayName || 'Client'}</span>
+                                <Button variant="outline" size="sm" onClick={handleLogout}>
+                                    <LogOut className="w-4 h-4" />
+                                </Button>
+                            </div>
                         ) : (
-                            <Button variant="default" size="sm" onClick={handleLogin}>
+                            <Button variant="default" size="sm" onClick={() => setIsAuthModalOpen(true)}>
                                 <LogIn className="w-4 h-4 mr-2" />
                                 {t({ uz: 'Kirish', ru: 'Войти', en: 'Login' })}
                             </Button>
@@ -119,6 +242,62 @@ export function SiteContent({ content, subdomain }: SiteContentProps) {
                     </div>
                 </div>
             </nav>
+
+            {/* AUTH MODAL */}
+            {isAuthModalOpen && !isLoggedIn && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <Card className="w-full max-w-md shadow-2xl relative">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-2"
+                            onClick={() => setIsAuthModalOpen(false)}
+                        >
+                            <X className="w-4 h-4" />
+                        </Button>
+                        <CardHeader>
+                            <CardTitle className="text-2xl text-center">
+                                {authMode === 'login' ? t({ uz: 'Kirish', ru: 'Вход', en: 'Login' }) : t({ uz: 'Ro\'yxatdan o\'tish', ru: 'Регистрация', en: 'Sign Up' })}
+                            </CardTitle>
+                            <CardDescription className="text-center">
+                                {t({ uz: 'Davom etish uchun hisobingizga kiring', ru: 'Войдите в аккаунт', en: 'Access your client portal' })}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {error && <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">{error}</div>}
+
+                            {authMode === 'signup' && (
+                                <Input
+                                    placeholder={t({ uz: 'Ism', ru: 'Имя', en: 'Full Name' })}
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
+                            )}
+                            <Input
+                                type="email"
+                                placeholder="Email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                            <Input
+                                type="password"
+                                placeholder={t({ uz: 'Parol', ru: 'Пароль', en: 'Password' })}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+
+                            <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={handleAuth} disabled={loading}>
+                                {loading && <Timer className="w-4 h-4 mr-2 animate-spin" />}
+                                {authMode === 'login' ? t({ uz: 'Kirish', ru: 'Войти', en: 'Sign In' }) : t({ uz: 'Yaratish', ru: 'Создать', en: 'Create Account' })}
+                            </Button>
+
+                            <div className="text-center text-sm text-muted-foreground cursor-pointer hover:underline" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
+                                {authMode === 'login' ? t({ uz: 'Hisobingiz yo\'qmi? Ro\'yxatdan o\'ting', ru: 'Нет аккаунта? Регистрация', en: "Don't have an account? Sign up" }) : t({ uz: 'Hisobingiz bormi? Kirish', ru: 'Есть аккаунт? Войти', en: 'Already have an account? Login' })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* MAIN CONTENT Area */}
             {isLoggedIn ? (
