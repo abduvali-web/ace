@@ -21,6 +21,7 @@ export default {
             clientSecret: process.env.GITHUB_CLIENT_SECRET!,
             authorization: { params: { scope: "read:user user:email repo" } },
         }),
+        /*
         {
             id: "vercel",
             name: "Vercel",
@@ -39,6 +40,7 @@ export default {
                 }
             },
         }
+        */
     ],
     pages: {
         signIn: "/login",
