@@ -1,26 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth-helper'
 import { db } from '@/lib/db'
+import fs from 'fs'
+import path from 'path'
 
 // Helper to push a file to GitHub
-async function pushFileToGitHub(token: string, owner: string, repo: string, path: string, content: string, message: string) {
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
+async function pushFileToGitHub(token: string, owner: string, repo: string, filePath: string, content: string, message: string) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`
+
+    // 1. Check if file exists to get SHA (for update)
+    let sha: string | undefined
+    try {
+        const checkRes = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'User-Agent': 'Ace-Builder'
+            }
+        })
+        if (checkRes.ok) {
+            const data = await checkRes.json()
+            sha = data.sha
+        }
+    } catch (e) { /* ignore */ }
+
+    // 2. Prepare PUT body
     const body: any = {
         message,
         content: Buffer.from(content).toString('base64'),
     }
+    if (sha) body.sha = sha
 
-    // Check if file exists to get SHA for update
-    try {
-        const checkRes = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        if (checkRes.ok) {
-            const data = await checkRes.json()
-            body.sha = data.sha
-        }
-    } catch (e) { /* ignore */ }
-
+    // 3. Upload
     const res = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -33,7 +43,18 @@ async function pushFileToGitHub(token: string, owner: string, repo: string, path
 
     if (!res.ok) {
         const err = await res.json()
-        throw new Error(`GitHub File Error (${path}): ${err.message}`)
+        throw new Error(`GitHub File Error (${filePath}): ${err.message}`)
+    }
+}
+
+// Helper to read local file
+function readLocalFile(relativePath: string) {
+    try {
+        const fullPath = path.join(process.cwd(), relativePath)
+        return fs.readFileSync(fullPath, 'utf8')
+    } catch (e) {
+        console.error(`Missing file: ${relativePath}`, e)
+        return ''
     }
 }
 
@@ -44,64 +65,47 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const { vercelToken, subdomain, siteContent } = await request.json()
+        const { subdomain, siteContent } = await request.json()
+        if (!subdomain) return NextResponse.json({ error: 'Missing subdomain' }, { status: 400 })
 
-        if (!vercelToken || !subdomain) {
-            return NextResponse.json({ error: 'Missing Vercel token or subdomain' }, { status: 400 })
+        // 1. Get Tokens
+        const ghAccount = await db.account.findFirst({ where: { userId: user.id, provider: 'github' } })
+        if (!ghAccount?.access_token) return NextResponse.json({ error: 'GitHub not connected. Please connect GitHub first.' }, { status: 400 })
+        const githubToken = ghAccount.access_token
+
+        const vercelAccount = await db.account.findFirst({ where: { userId: user.id, provider: 'vercel' } })
+        // Allow env fallback for testing if mainly dev mode, but prefer linked account
+        const vercelToken = vercelAccount?.access_token || process.env.VERCEL_TOKEN
+
+        if (!vercelToken) {
+            return NextResponse.json({ error: 'Vercel not connected. Please connect Vercel first.' }, { status: 400 })
         }
-
-        // 1. Get GitHub Token from Linked Account
-        const account = await db.account.findFirst({
-            where: {
-                userId: user.id,
-                provider: 'github'
-            }
-        })
-
-        if (!account || !account.access_token) {
-            return NextResponse.json({ error: 'GitHub account not connected. Please connect GitHub first.' }, { status: 400 })
-        }
-
-        const githubToken = account.access_token
 
         // 2. Get GitHub User Info
-        const ghUserRes = await fetch('https://api.github.com/user', {
-            headers: { Authorization: `Bearer ${githubToken}` }
-        })
-        if (!ghUserRes.ok) throw new Error('Invalid GitHub Token or Session Expired')
+        const ghUserRes = await fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${githubToken}` } })
+        if (!ghUserRes.ok) throw new Error('Invalid GitHub Token')
         const ghUser = await ghUserRes.json()
         const ghUsername = ghUser.login
 
-        // 3. Create/Get GitHub Repo
+        // 3. Create Repo
         const repoName = `ace-site-${subdomain}`
         let repoUrl = ''
-
         const createRepoRes = await fetch('https://api.github.com/user/repos', {
             method: 'POST',
-            headers: {
-                Authorization: `Bearer ${githubToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: repoName,
-                private: true,
-                auto_init: true,
-                description: `Generated by Ace AutoFood for ${subdomain}`
-            })
+            headers: { Authorization: `Bearer ${githubToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: repoName, private: true, auto_init: true })
         })
 
         if (createRepoRes.status === 422) {
-            // Repo likely exists, proceed using it
             repoUrl = `https://github.com/${ghUsername}/${repoName}`
         } else if (!createRepoRes.ok) {
-            const err = await createRepoRes.json()
-            throw new Error(`Failed to create GitHub repo: ${err.message}`)
+            throw new Error('Failed to create GitHub repo')
         } else {
             repoUrl = (await createRepoRes.json()).html_url
         }
 
-        // 4. Push Code to GitHub
-
+        // 4. Push Files
+        // Dependencies including Firebase
         const packageJson = {
             "name": repoName,
             "version": "0.1.0",
@@ -113,118 +117,87 @@ export async function POST(request: NextRequest) {
                 "react-dom": "^18",
                 "lucide-react": "^0.300.0",
                 "clsx": "^2.0.0",
-                "tailwind-merge": "^2.0.0"
+                "tailwind-merge": "^2.0.0",
+                "firebase": "^10.0.0",
+                "class-variance-authority": "^0.7.0"
             },
             "devDependencies": {
                 "autoprefixer": "^10.0.1",
                 "postcss": "^8",
                 "tailwindcss": "^3.3.0",
-                "typescript": "^5"
+                "typescript": "^5",
+                "@types/node": "^20",
+                "@types/react": "^18",
+                "@types/react-dom": "^18"
+            }
+        }
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'package.json', JSON.stringify(packageJson, null, 2), 'Update package.json')
+
+        // Configs
+        const nextConfig = `/** @type {import('next').NextConfig} */\nconst nextConfig = { reactStrictMode: true }\nmodule.exports = nextConfig`
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'next.config.js', nextConfig, 'Update next.config.js')
+
+        const tsConfig = JSON.stringify({
+            "compilerOptions": {
+                "lib": ["dom", "dom.iterable", "esnext"],
+                "allowJs": true,
+                "skipLibCheck": true,
+                "strict": true,
+                "noEmit": true,
+                "esModuleInterop": true,
+                "module": "esnext",
+                "moduleResolution": "bundler",
+                "resolveJsonModule": true,
+                "isolatedModules": true,
+                "jsx": "preserve",
+                "incremental": true,
+                "plugins": [{ "name": "next" }],
+                "paths": { "@/*": ["./src/*"] }
+            },
+            "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+            "exclude": ["node_modules"]
+        }, null, 2)
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'tsconfig.json', tsConfig, 'Update tsconfig')
+
+        // Tailwind & CSS
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'src/app/globals.css', "@tailwind base;\n@tailwind components;\n@tailwind utilities;", 'Update globals.css')
+        const tailwindConfig = `/** @type {import('tailwindcss').Config} */\nmodule.exports = { content: ["./src/**/*.{ts,tsx}"], theme: { extend: {} }, plugins: [], }`
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'tailwind.config.ts', tailwindConfig, 'Update tailwind')
+
+        // --- COMPONENTS & UTILS ---
+        // Dynamically read our local components and push them
+        const filesToCopy = [
+            'src/lib/utils.ts',
+            'src/components/ui/button.tsx',
+            'src/components/ui/card.tsx',
+            'src/components/ui/input.tsx',
+            'src/components/ui/badge.tsx',
+            'src/components/ui/scroll-area.tsx',
+            'src/components/site/SiteContent.tsx'
+        ]
+
+        for (const file of filesToCopy) {
+            const content = readLocalFile(file)
+            if (content) {
+                await pushFileToGitHub(githubToken, ghUsername, repoName, file, content, `Sync ${path.basename(file)}`)
             }
         }
 
-        // Push package.json
-        await pushFileToGitHub(githubToken, ghUsername, repoName, 'package.json', JSON.stringify(packageJson, null, 2), 'Init package.json')
+        // Layout
+        const layoutContent = `import type { Metadata } from 'next'\nimport './globals.css'\nimport { Inter } from 'next/font/google'\nconst inter = Inter({ subsets: ['latin'] })\nexport const metadata: Metadata = { title: '${subdomain}', description: 'Generated Site' }\nexport default function RootLayout({ children }: { children: React.ReactNode }) { return (<html lang="en"><body className={inter.className}>{children}</body></html>) }`
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'src/app/layout.tsx', layoutContent, 'Update layout')
 
-        // Push next.config.js
-        const nextConfig = `
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-}
-module.exports = nextConfig
-`
-        await pushFileToGitHub(githubToken, ghUsername, repoName, 'next.config.js', nextConfig, 'Init next.config.js')
-
-        // Push Main Page (Simulated logic to inject content)
-        // We inject the JSON content into a simple renderer template
+        // Page (Injects Content)
         const pageContent = `
-'use client'
-import React, { useState } from 'react'
-import { Plus, Minus, ShoppingCart, User, Phone, Globe } from 'lucide-react'
+import { SiteContent } from '@/components/site/SiteContent'
 
-// INJECTED CONTENT
 const generatedContent = ${JSON.stringify(siteContent, null, 2)}
-const subdomain = "${subdomain}"
 
 export default function Home() {
-  const [lang, setLang] = useState('uz')
-  const t = (obj: any) => obj ? obj[lang] : ''
-  
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-       <nav className="bg-white border-b py-4 px-6 flex justify-between items-center sticky top-0 z-50">
-          <h1 className="text-xl font-bold uppercase">{subdomain}</h1>
-          <div className="flex gap-2">
-             <button onClick={() => setLang('uz')} className={lang==='uz'?'font-bold':''}>UZ</button>
-             <button onClick={() => setLang('ru')} className={lang==='ru'?'font-bold':''}>RU</button>
-             <button onClick={() => setLang('en')} className={lang==='en'?'font-bold':''}>EN</button>
-          </div>
-       </nav>
-       
-       <header className="py-20 text-center bg-gradient-to-b from-purple-50 to-white px-4">
-          <h1 className="text-4xl font-extrabold mb-4">{t(generatedContent.hero.title)}</h1>
-          <p className="text-xl text-slate-500 mb-8">{t(generatedContent.hero.subtitle)}</p>
-          <a href="tel:998977087373" className="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transition inline-flex items-center gap-2" style={{backgroundColor: '#7c3aed'}}>
-             <Phone size={20} />
-             {t(generatedContent.hero.cta)}
-          </a>
-       </header>
-
-       <section className="py-16 container mx-auto px-4 grid md:grid-cols-3 gap-6">
-          {generatedContent.pricing.map((plan: any, i: number) => (
-             <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition">
-                <h3 className="text-2xl font-bold mb-2">{t(plan.name)}</h3>
-                <div className="text-4xl font-extrabold text-purple-600 mb-4">{plan.price}</div>
-                <ul className="space-y-2 mb-6 text-slate-600">
-                    {plan.features.map((f: any, j: number) => (
-                        <li key={j}>âœ“ {t(f)}</li>
-                    ))}
-                </ul>
-                <a href="tel:998977087373" className="block w-full text-center py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-medium transition">
-                   Select Plan
-                </a>
-             </div>
-          ))}
-       </section>
-       
-       <footer className="py-8 text-center text-slate-400 text-sm">
-         &copy; 2024 {subdomain}
-       </footer>
-    </div>
-  )
+  return <SiteContent content={generatedContent} subdomain="${subdomain}" />
 }
 `
-        // Push the page.tsx (src/app/page.tsx or pages/index.js depending on structure, using App Router structure here)
-        await pushFileToGitHub(githubToken, ghUsername, repoName, 'src/app/page.tsx', pageContent, 'Deploy site content')
-
-        // Push layout.tsx & globals.css (Minimal)
-        const layoutContent = `
-import type { Metadata } from 'next'
-import './globals.css'
-
-export const metadata: Metadata = {
-  title: '${subdomain} - AutoFood Site',
-  description: 'Generated by AutoFood',
-}
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  )
-}
-`
-        await pushFileToGitHub(githubToken, ghUsername, repoName, 'src/app/layout.tsx', layoutContent, 'Init layout.tsx')
-
-        const globalsCss = `
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-`
-        await pushFileToGitHub(githubToken, ghUsername, repoName, 'src/app/globals.css', globalsCss, 'Init globals.css')
-
+        await pushFileToGitHub(githubToken, ghUsername, repoName, 'src/app/page.tsx', pageContent, 'Update page content')
 
         // 5. Create Vercel Project
         const vercelRes = await fetch('https://api.vercel.com/v9/projects', {
@@ -233,10 +206,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             body: JSON.stringify({
                 name: repoName,
                 framework: 'nextjs',
-                gitRepository: {
-                    type: 'github',
-                    repo: `${ghUsername}/${repoName}`
-                }
+                gitRepository: { type: 'github', repo: `${ghUsername}/${repoName}` }
             })
         })
 
@@ -244,41 +214,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         if (vercelRes.ok) {
             const vData = await vercelRes.json()
             deploymentUrl = `https://${vData.alias?.[0] || vData.name + '.vercel.app'}`
+
+            // Trigger Deployment
+            await fetch('https://api.vercel.com/v13/deployments', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${vercelToken}` },
+                body: JSON.stringify({
+                    name: repoName,
+                    gitSource: {
+                        ref: 'main',
+                        repoId: (await createRepoRes.json()).id,
+                        type: 'github'
+                    }
+                })
+            })
         } else {
-            // If project exists, try to get it, or just ignore and return repo url
-            console.warn('Vercel project creation failed (might exist):', await vercelRes.text())
-            deploymentUrl = `https://${repoName}.vercel.app` // best guess
+            deploymentUrl = `https://${repoName}.vercel.app`
         }
 
-        // 6. Update DB
-        // Check if website entry exists, create if not
-        const website = await db.website.upsert({
+        // 6. Database Update
+        await db.website.upsert({
             where: { adminId: user.id },
-            update: {
-                vercelToken,
-                repoName,
-                content: JSON.stringify(siteContent) // Save latest content
-            },
-            create: {
-                adminId: user.id,
-                subdomain,
-                theme: '{}',
-                content: JSON.stringify(siteContent),
-                vercelToken,
-                repoName
-            }
+            update: { repoName, content: JSON.stringify(siteContent), deploymentUrl },
+            create: { adminId: user.id, subdomain, theme: '{}', content: JSON.stringify(siteContent), repoName, vercelToken: 'oauth', deploymentUrl }
         })
 
-        return NextResponse.json({
-            success: true,
-            repoUrl,
-            deploymentUrl
-        })
+        return NextResponse.json({ success: true, repoUrl, deploymentUrl })
 
     } catch (error) {
         console.error('Deploy error:', error)
-        return NextResponse.json({
-            error: error instanceof Error ? error.message : 'Deployment failed'
-        }, { status: 500 })
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Detailed Deployment failed' }, { status: 500 })
     }
 }
