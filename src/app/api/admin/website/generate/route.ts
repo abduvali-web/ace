@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AgentOrchestrator } from '@/lib/agent-orchestrator'
-import { getAuthUser } from '@/lib/auth-helper'
+import { getAuthUser } from '@/lib/auth-utils'
 import { db } from '@/lib/db'
 
 export const maxDuration = 60 // Allow longer timeouts for multi-agent work
