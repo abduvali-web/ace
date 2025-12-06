@@ -1,53 +1,12 @@
 import NextAuth from "next-auth"
 import authConfig from "./auth.config"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import Credentials from "next-auth/providers/credentials"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 
-import Google from "next-auth/providers/google"
-import GitHub from "next-auth/providers/github"
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
-    // Adapter removed to prevent conflict with Credentials provider and custom schema
-    // We handle user creation and account linking manually in callbacks
     providers: [
-        Google({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            authorization: {
-                params: {
-                    scope: "https://www.googleapis.com/auth/generative-language.retriever https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
-                    prompt: "consent",
-                    access_type: "offline",
-                    response_type: "code"
-                }
-            }
-        }),
-        GitHub({
-            clientId: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            authorization: { params: { scope: "read:user user:email repo" } },
-        }),
-        {
-            id: "vercel",
-            name: "Vercel",
-            type: "oauth",
-            clientId: process.env.VERCEL_CLIENT_ID,
-            clientSecret: process.env.VERCEL_CLIENT_SECRET,
-            authorization: { params: { scope: "project:write" } },
-            token: "https://api.vercel.com/v2/oauth/access_token",
-            userinfo: "https://api.vercel.com/www/user",
-            profile(profile) {
-                return {
-                    id: profile.user.id,
-                    name: profile.user.name,
-                    email: profile.user.email,
-                    image: profile.user.avatar,
-                }
-            },
-        },
         ...authConfig.providers,
         Credentials({
             name: "credentials",
@@ -135,38 +94,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                             data: { googleId: account.providerAccountId }
                         })
                     }
-
-                    // Manually save the Account to persist tokens (replaces PrismaAdapter)
-                    await db.account.upsert({
-                        where: {
-                            provider_providerAccountId: {
-                                provider: account.provider,
-                                providerAccountId: account.providerAccountId
-                            }
-                        },
-                        update: {
-                            access_token: account.access_token,
-                            refresh_token: account.refresh_token,
-                            expires_at: account.expires_at,
-                            token_type: account.token_type,
-                            scope: account.scope,
-                            id_token: account.id_token,
-                            session_state: account.session_state as string,
-                        },
-                        create: {
-                            userId: admin.id,
-                            type: account.type,
-                            provider: account.provider,
-                            providerAccountId: account.providerAccountId,
-                            access_token: account.access_token,
-                            refresh_token: account.refresh_token,
-                            expires_at: account.expires_at,
-                            token_type: account.token_type,
-                            scope: account.scope,
-                            id_token: account.id_token,
-                            session_state: account.session_state as string,
-                        }
-                    })
 
                     // Check if trial has expired
                     if (admin.trialEndsAt && new Date() > admin.trialEndsAt && !admin.isActive) {
