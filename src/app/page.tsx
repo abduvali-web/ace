@@ -108,8 +108,8 @@ export default function LandingPage() {
                             <Link href="tel:+998977087373">
                                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 btn-3d">
                                     <Phone className="w-4 h-4 mr-2" />
-                                    <span className="hidden sm:inline">Bog'lanish</span>
-                                    <span className="sm:hidden">Qo'ng'iroq</span>
+                                    <span className="hidden sm:inline">{t.landing.contact}</span>
+                                    <span className="sm:hidden">{t.landing.contact}</span>
                                 </Button>
                             </Link>
                         </div>
@@ -134,31 +134,30 @@ export default function LandingPage() {
                         <motion.div variants={itemVariants} className="mb-6 flex justify-center">
                             <Badge variant="outline" className="px-4 py-1.5 text-sm border-primary/40 bg-primary/10 text-foreground font-medium rounded-full">
                                 <Star className="w-3.5 h-3.5 mr-2 fill-primary text-primary" />
-                                O'zbekistonda #1 Yetkazib Berish Tizimi
+                                AutoFood #1
                             </Badge>
                         </motion.div>
 
                         <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8">
-                            Biznesingizni <br />
-                            <span className="bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent">Avtomatlashtiring</span>
+                            {t.landing.heroTitle} <br />
+                            <span className="bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent">{t.landing.heroTitleSuffix}</span>
                         </motion.h1>
 
                         <motion.p variants={itemVariants} className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-                            Restoran va yetkazib berish xizmatlari uchun mukammal yechim.
-                            Buyurtmalarni boshqaring, kuryerlarni kuzating va daromadingizni oshiring.
+                            {t.landing.heroSubtitle}
                         </motion.p>
 
                         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link href="/login" className="w-full sm:w-auto">
                                 <Button size="lg" className="w-full h-14 text-lg px-8 rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 btn-3d ripple">
-                                    Tizimga Kirish
+                                    {t.landing.getStarted}
                                     <ArrowRight className="ml-2 w-5 h-5" />
                                 </Button>
                             </Link>
                             <Link href="tel:+998977087373" className="w-full sm:w-auto">
                                 <Button size="lg" variant="outline" className="w-full h-14 text-lg px-8 rounded-full border-2 hover:bg-secondary/50 transition-all">
                                     <Phone className="mr-2 w-5 h-5" />
-                                    +998 97 708 73 73
+                                    {t.landing.contact}
                                 </Button>
                             </Link>
                         </motion.div>
@@ -206,11 +205,11 @@ export default function LandingPage() {
                             </motion.div>
                         ))}
                     </div>
-                </div>
-            </section>
+                </div >
+            </section >
 
             {/* Detailed Features Section */}
-            <section className="py-24 relative overflow-hidden">
+            < section className="py-24 relative overflow-hidden" >
                 <div className="absolute inset-0 bg-mesh-gradient opacity-30"></div>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="text-center mb-16">
@@ -228,16 +227,16 @@ export default function LandingPage() {
                             viewport={{ once: true }}
                         >
                             <div className="space-y-6">
-                                <h3 className="text-3xl font-bold text-gradient">Avtomatik Buyurtmalar</h3>
+                                <h3 className="text-3xl font-bold text-gradient">{t.landing.autoOrders}</h3>
                                 <p className="text-lg text-muted-foreground leading-relaxed">
-                                    Doimiy mijozlaringiz uchun avtomatik buyurtmalar yarating. Tizim har kuni, hafta yoki oy sari avtomatik ravishda buyurtmalarni yaratadi va kuryerlarga yuboradi.
+                                    {t.landing.autoOrdersDesc}
                                 </p>
                                 <ul className="space-y-4">
                                     {[
-                                        "Vaqt bo'yicha avtomatik yaratish",
-                                        "Mijoz ma'lumotlari saqlash",
-                                        "Buyurtma tarixini kuzatish",
-                                        "Eslatmalar va bildirishnomalar"
+                                        t.landing.autoOrders, // Reusing key for list item example
+                                        t.admin.clients,
+                                        t.admin.history,
+                                        "Notifications" // Missing translation for this specific list item
                                     ].map((item, i) => (
                                         <li key={i} className="flex items-center gap-3">
                                             <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -258,16 +257,16 @@ export default function LandingPage() {
                             <div className="glass-intense rounded-2xl p-8 hover-lift">
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl">
-                                        <span className="font-medium">Har kuni soat 12:00</span>
-                                        <Badge className="bg-green-500">Faol</Badge>
+                                        <span className="font-medium">12:00</span>
+                                        <Badge className="bg-green-500">Active</Badge>
                                     </div>
                                     <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
-                                        <span className="font-medium">Haftada 3 marta</span>
-                                        <Badge variant="secondary">Rejalashtrilgan</Badge>
+                                        <span className="font-medium">3x / week</span>
+                                        <Badge variant="secondary">Scheduled</Badge>
                                     </div>
                                     <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
-                                        <span className="font-medium">Oylik obuna</span>
-                                        <Badge variant="secondary">Rejalashtrilgan</Badge>
+                                        <span className="font-medium">Monthly</span>
+                                        <Badge variant="secondary">Scheduled</Badge>
                                     </div>
                                 </div>
                             </div>
@@ -288,8 +287,8 @@ export default function LandingPage() {
                                             <span className="text-2xl font-bold text-blue-500">247</span>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Buyurtmalar</p>
-                                            <p className="text-xs text-green-500">+12% haftalik</p>
+                                            <p className="text-sm text-muted-foreground">{t.admin.orders}</p>
+                                            <p className="text-xs text-green-500">+12%</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
@@ -297,8 +296,8 @@ export default function LandingPage() {
                                             <span className="text-2xl font-bold text-purple-500">45</span>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Kuryerlar</p>
-                                            <p className="text-xs text-green-500">Faol</p>
+                                            <p className="text-sm text-muted-foreground">{t.admin.couriers}</p>
+                                            <p className="text-xs text-green-500">Active</p>
                                         </div>
                                     </div>
                                 </div>
@@ -311,9 +310,9 @@ export default function LandingPage() {
                             className="order-1 md:order-2"
                         >
                             <div className="space-y-6">
-                                <h3 className="text-3xl font-bold text-gradient-purple">Real Vaqtda Kuzatish</h3>
+                                <h3 className="text-3xl font-bold text-gradient-purple">{t.landing.realTime}</h3>
                                 <p className="text-lg text-muted-foreground leading-relaxed">
-                                    Barcha buyurtmalar va kuryerlaringizni bir joydan kuzating. Statistika, hisobotlar va real vaqt ma'lumotlari.
+                                    {t.landing.realTimeDesc}
                                 </p>
                                 <ul className="space-y-4">
                                     {[
@@ -334,10 +333,10 @@ export default function LandingPage() {
                         </motion.div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Testimonials Section */}
-            <section className="py-24 bg-muted/30">
+            < section className="py-24 bg-muted/30" >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
                         <Badge className="mb-4 px-4 py-1.5 text-sm">Mijozlarimiz fikri</Badge>
@@ -401,10 +400,10 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Key Benefits Section */}
-            <section className="py-24 relative overflow-hidden">
+            < section className="py-24 relative overflow-hidden" >
                 <motion.div
                     className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-background"
                     animate={{
@@ -418,9 +417,9 @@ export default function LandingPage() {
                 />
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold mb-4">Nega AutoFood?</h2>
+                        <h2 className="text-3xl md:text-5xl font-bold mb-4">{t.landing.whyUs}</h2>
                         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                            Raqobatchilarga nisbatan ustunliklarimiz
+                            {t.landing.whyUsDesc}
                         </p>
                     </div>
 
@@ -501,14 +500,14 @@ export default function LandingPage() {
                         </Card>
                     </motion.div>
                 </div>
-            </section>
+            </section >
 
             {/* Pricing Section */}
             <section className="py-24 relative">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold mb-4">Qulay Narxlar</h2>
-                        <p className="text-xl text-muted-foreground">Biznesingiz hajbiga mos keladigan tarifni tanlang</p>
+                        <h2 className="text-3xl md:text-5xl font-bold mb-4">{t.landing.pricing}</h2>
+                        <p className="text-xl text-muted-foreground">{t.landing.pricingDesc}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -520,10 +519,14 @@ export default function LandingPage() {
                         >
                             <Card className="h-full glass-card border-none hover:border-primary/50 transition-all duration-300 shadow-xl hover-lift">
                                 <CardHeader className="text-center pb-2">
-                                    <CardTitle className="text-2xl font-medium text-muted-foreground">1 Oy</CardTitle>
+                                    <CardTitle className="text-2xl font-medium text-muted-foreground">{t.landing.month1}</CardTitle>
                                     <div className="flex items-baseline justify-center mt-4">
-                                        <span className="text-5xl font-bold">$100</span>
-                                        <span className="text-muted-foreground ml-2">/ oyiga</span>
+                                        <span className="text-5xl font-bold">120,000</span>
+                                        <span className="text-muted-foreground ml-2">/ {t.landing.month}</span>
+                                    </div>
+                                    <div className="flex items-baseline justify-center gap-1 mt-2">
+                                        <span className="text-sm text-muted-foreground line-through">150,000 UZS ({t.landing.total})</span>
+                                        <Badge variant="secondary" className="bg-green-500/10 text-green-500 hover:bg-green-500/20">{t.landing.save} 20%</Badge>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pt-8">
@@ -547,7 +550,7 @@ export default function LandingPage() {
                                 <CardFooter>
                                     <Link href="tel:+998977087373" className="w-full">
                                         <Button className="w-full h-12 text-lg" variant="outline">
-                                            Tanlash
+                                            {t.landing.choose}
                                         </Button>
                                     </Link>
                                 </CardFooter>
@@ -565,12 +568,15 @@ export default function LandingPage() {
                                     ENG MASHHUR
                                 </div>
                                 <CardHeader className="text-center pb-2">
-                                    <CardTitle className="text-2xl font-medium text-primary">3 Oy</CardTitle>
+                                    <CardTitle className="text-2xl font-medium text-primary">{t.landing.month3}</CardTitle>
                                     <div className="flex items-baseline justify-center mt-4">
-                                        <span className="text-5xl font-bold">$200</span>
-                                        <span className="text-muted-foreground ml-2">/ jami</span>
+                                        <span className="text-5xl font-bold">300,000</span>
+                                        <span className="text-muted-foreground ml-2">/ {t.landing.month}</span>
                                     </div>
-                                    <p className="text-sm text-green-600 font-medium mt-2">33% Tejang</p>
+                                    <p className="text-sm text-green-600 font-medium mt-2">{t.landing.save} 33%</p>
+                                    <div className="flex items-baseline justify-center gap-1">
+                                        <span className="text-sm text-muted-foreground line-through">450,000 UZS ({t.landing.total})</span>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="pt-8">
                                     <ul className="space-y-4">
@@ -594,7 +600,7 @@ export default function LandingPage() {
                                 <CardFooter>
                                     <Link href="tel:+998977087373" className="w-full">
                                         <Button className="w-full h-12 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                                            Hoziroq Ulanish
+                                            {t.landing.connectNow}
                                         </Button>
                                     </Link>
                                 </CardFooter>
@@ -607,10 +613,9 @@ export default function LandingPage() {
             {/* Contact CTA */}
             <section className="py-20 bg-slate-900 text-white">
                 <div className="max-w-4xl mx-auto px-4 text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6">Savollaringiz bormi?</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6">{t.landing.contactTitle}</h2>
                     <p className="text-xl text-slate-300 mb-10">
-                        Bizning mutaxassislarimiz sizga yordam berishga tayyor.
-                        Hoziroq qo'ng'iroq qiling va bepul konsultatsiya oling.
+                        {t.landing.contactDesc}
                     </p>
                     <Link href="tel:+998977087373">
                         <Button size="lg" className="h-16 px-10 text-xl rounded-full bg-white text-slate-900 hover:bg-slate-100">
@@ -624,9 +629,9 @@ export default function LandingPage() {
             {/* Footer */}
             <footer className="py-8 border-t border-border">
                 <div className="max-w-7xl mx-auto px-4 text-center text-muted-foreground text-sm">
-                    <p>&copy; {new Date().getFullYear()} AutoFood. Barcha huquqlar himoyalangan.</p>
+                    <p>&copy; {new Date().getFullYear()} AutoFood. {t.landing.footerRights}</p>
                 </div>
             </footer>
-        </div>
+        </div >
     )
 }

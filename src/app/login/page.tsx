@@ -77,6 +77,9 @@ export default function Home() {
             case 'COURIER':
               window.location.href = '/courier'
               break
+            case 'CUSTOMER':
+              window.location.href = '/client'
+              break
             default:
               // Fallback if role is missing or unknown
               window.location.href = '/middle-admin'
@@ -174,13 +177,13 @@ export default function Home() {
             <CardContent className="space-y-6">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t.auth.email}</Label>
+                  <Label htmlFor="email">{t.auth.email} / Phone</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="email"
-                      type="email"
-                      placeholder="admin@autofood.uz"
+                      type="text"
+                      placeholder="admin@autofood.uz / +998..."
                       className="pl-10 h-11 bg-white/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-primary/50 transition-all"
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}

@@ -19,39 +19,56 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     return null
                 }
 
+                const identifier = credentials.email as string
+                const password = credentials.password as string
+
+                // 1. Try to find Admin by Email
                 const admin = await db.admin.findUnique({
-                    where: { email: credentials.email as string }
+                    where: { email: identifier }
                 })
 
-                if (!admin || !admin.password) {
-                    return null
+                if (admin && admin.password) {
+                    const passwordMatch = await bcrypt.compare(password, admin.password)
+                    if (passwordMatch) {
+                        // Check if trial has expired
+                        if (admin.trialEndsAt && new Date() > admin.trialEndsAt && !admin.isActive) {
+                            throw new Error("Your trial period has expired. Please contact an administrator.")
+                        }
+                        // Check if account is active
+                        if (!admin.isActive) {
+                            throw new Error("Your account has been disabled. Please contact an administrator.")
+                        }
+
+                        return {
+                            id: admin.id,
+                            email: admin.email,
+                            name: admin.name,
+                            role: admin.role,
+                        }
+                    }
                 }
 
-                const passwordMatch = await bcrypt.compare(
-                    credentials.password as string,
-                    admin.password
-                )
+                // 2. Try to find Customer by Phone (mapped to 'email' field in credentials)
+                const customer = await db.customer.findUnique({
+                    where: { phone: identifier }
+                })
 
-                if (!passwordMatch) {
-                    return null
+                if (customer && customer.password) {
+                    const passwordMatch = await bcrypt.compare(password, customer.password)
+                    if (passwordMatch) {
+                        if (!customer.isActive) {
+                            throw new Error("Your account has been disabled.")
+                        }
+                        return {
+                            id: customer.id,
+                            email: customer.phone, // Use phone as email identifier
+                            name: customer.name,
+                            role: "CUSTOMER",
+                        }
+                    }
                 }
 
-                // Check if trial has expired
-                if (admin.trialEndsAt && new Date() > admin.trialEndsAt && !admin.isActive) {
-                    throw new Error("Your trial period has expired. Please contact an administrator.")
-                }
-
-                // Check if account is active
-                if (!admin.isActive) {
-                    throw new Error("Your account has been disabled. Please contact an administrator.")
-                }
-
-                return {
-                    id: admin.id,
-                    email: admin.email,
-                    name: admin.name,
-                    role: admin.role,
-                }
+                return null
             }
         })
     ],
@@ -155,12 +172,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             // If we have an email but no role/id (or to ensure fresh data), fetch from DB
             if (token.email && (!token.role || !token.id)) {
-                const dbUser = await db.admin.findUnique({
+                // Try Admin first
+                const dbAdmin = await db.admin.findUnique({
                     where: { email: token.email }
                 })
-                if (dbUser) {
-                    token.role = dbUser.role
-                    token.id = dbUser.id
+                if (dbAdmin) {
+                    token.role = dbAdmin.role
+                    token.id = dbAdmin.id
+                } else {
+                    // Try Customer (token.email holds phone)
+                    const dbCustomer = await db.customer.findUnique({
+                        where: { phone: token.email }
+                    })
+                    if (dbCustomer) {
+                        token.role = "CUSTOMER"
+                        token.id = dbCustomer.id
+                    }
                 }
             }
             return token

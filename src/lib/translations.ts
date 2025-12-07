@@ -81,9 +81,101 @@ export const translations = {
             system: 'Системная',
             saveSettings: 'Сохранить настройки',
             settingsSaved: 'Настройки сохранены',
+        },
+        landing: {
+            heroTitle: 'Автоматизируйте',
+            heroTitleSuffix: 'ваш бизнес',
+            heroSubtitle: 'Идеальное решение для ресторанов и служб доставки. Управляйте заказами, отслеживайте курьеров и увеличивайте прибыль.',
+            getStarted: 'Войти в систему',
+            contact: 'Связаться',
+            features: 'Функции',
+            automation: 'Возможности автоматизации',
+            automationDesc: 'Система AutoFood выведет ваш бизнес на максимальную эффективность',
+            autoOrders: 'Автоматические заказы',
+            autoOrdersDesc: 'Создавайте автоматические заказы для постоянных клиентов. Система будет создавать и отправлять заказы курьерам ежедневно, еженедельно или ежемесячно.',
+            realTime: 'Отслеживание в реальном времени',
+            realTimeDesc: 'Отслеживайте все заказы и курьеров в одном месте. Статистика, отчеты и данные в реальном времени.',
+            whyUs: 'Почему AutoFood?',
+            whyUsDesc: 'Наши преимущества перед конкурентами',
+            pricing: 'Выгодные тарифы',
+            pricingDesc: 'Выберите тариф, соответствующий размеру вашего бизнеса',
+            month1: '1 Месяц',
+            month3: '3 Месяца',
+            month: 'мес',
+            total: 'всего',
+            save: 'Экономия',
+            choose: 'Выбрать',
+            connectNow: 'Подключиться сейчас',
+            contactTitle: 'Есть вопросы?',
+            contactDesc: 'Наши специалисты готовы помочь вам. Позвоните сейчас и получите бесплатную консультацию.',
+            footerRights: 'Все права защищены.'
         }
     },
     uz: {
+        common: {
+            // ...
+            landing: {
+                heroTitle: 'Avtomatlashtiring',
+                heroTitleSuffix: 'Biznesingizni',
+                heroSubtitle: 'Restoran va yetkazib berish xizmatlari uchun mukammal yechim. Buyurtmalarni boshqaring, kuryerlarni kuzating va daromadingizni oshiring.',
+                getStarted: 'Tizimga Kirish',
+                contact: 'Bog\'lanish',
+                features: 'Funksiyalar',
+                automation: 'Avtomatlashtirish Imkoniyatlari',
+                automationDesc: 'AutoFood tizimi biznesingizni maksimal samaradorlikka olib chiqadi',
+                autoOrders: 'Avtomatik Buyurtmalar',
+                autoOrdersDesc: 'Doimiy mijozlaringiz uchun avtomatik buyurtmalar yarating. Tizim har kuni, hafta yoki oy sari avtomatik ravishda buyurtmalarni yaratadi va kuryerlarga yuboradi.',
+                realTime: 'Real Vaqtda Kuzatish',
+                realTimeDesc: 'Barcha buyurtmalar va kuryerlaringizni bir joydan kuzating. Statistika, hisobotlar va real vaqt ma\'lumotlari.',
+                whyUs: 'Nega AutoFood?',
+                whyUsDesc: 'Raqobatchilarga nisbatan ustunliklarimiz',
+                pricing: 'Qulay Narxlar',
+                pricingDesc: 'Biznesingiz hajbiga mos keladigan tarifni tanlang',
+                month1: '1 Oy',
+                month3: '3 Oy',
+                month: 'oyiga',
+                total: 'jami',
+                save: 'Tejang',
+                choose: 'Tanlash',
+                connectNow: 'Hoziroq Ulanish',
+                contactTitle: 'Savollaringiz bormi?',
+                contactDesc: 'Bizning mutaxassislarimiz sizga yordam berishga tayyor. Hoziroq qo\'ng\'iroq qiling va bepul konsultatsiya oling.',
+                footerRights: 'Barcha huquqlar himoyalangan.'
+            }
+        },
+        en: {
+            common: {
+                // ...
+                landing: {
+                    heroTitle: 'Automate',
+                    heroTitleSuffix: 'Your Business',
+                    heroSubtitle: 'The perfect solution for restaurants and delivery services. Manage orders, track couriers, and increase profits.',
+                    getStarted: 'Login to System',
+                    contact: 'Contact Us',
+                    features: 'Features',
+                    automation: 'Automation Capabilities',
+                    automationDesc: 'The AutoFood system will bring your business to maximum efficiency',
+                    autoOrders: 'Automatic Orders',
+                    autoOrdersDesc: 'Create automatic orders for your regular customers. The system will create and send orders to couriers daily, weekly, or monthly.',
+                    realTime: 'Real-Time Tracking',
+                    realTimeDesc: 'Track all your orders and couriers in one place. Statistics, reports, and real-time data.',
+                    whyUs: 'Why AutoFood?',
+                    whyUsDesc: 'Our advantages over competitors',
+                    pricing: 'Best Prices',
+                    pricingDesc: 'Choose a plan that fits your business size',
+                    month1: '1 Month',
+                    month3: '3 Months',
+                    month: 'mo',
+                    total: 'total',
+                    save: 'Save',
+                    choose: 'Choose',
+                    connectNow: 'Connect Now',
+                    contactTitle: 'Have Questions?',
+                    contactDesc: 'Our specialists are ready to help you. Call now and get a free consultation.',
+                    footerRights: 'All rights reserved.'
+                }
+            }
+        }
         common: {
             login: 'Kirish',
             logout: 'Chiqish',
@@ -163,6 +255,22 @@ export const translations = {
             system: 'Tizim',
             saveSettings: 'Sozlamalarni saqlash',
             settingsSaved: 'Sozlamalar saqlandi',
+        },
+        landing: {
+            heroTitle: 'Avtomatlashtiring',
+            heroTitleSuffix: 'Biznesingizni',
+            heroSubtitle: 'Restoran va yetkazib berish xizmatlari uchun mukammal yechim. Buyurtmalarni boshqaring, kuryerlarni kuzating va daromadingizni oshiring.',
+            getStarted: 'Tizimga Kirish',
+            contact: 'Bog\'lanish',
+            features: 'Funksiyalar',
+            automation: 'Avtomatlashtirish Imkoniyatlari',
+            automationDesc: 'AutoFood tizimi biznesingizni maksimal samaradorlikka olib chiqadi',
+            autoOrders: 'Avtomatik Buyurtmalar',
+            autoOrdersDesc: 'Doimiy mijozlaringiz uchun avtomatik buyurtmalar yarating. Tizim har kuni, hafta yoki oy sari avtomatik ravishda buyurtmalarni yaratadi va kuryerlarga yuboradi.',
+            realTime: 'Real Vaqtda Kuzatish',
+            realTimeDesc: 'Barcha buyurtmalar va kuryerlaringizni bir joydan kuzating. Statistika, hisobotlar va real vaqt ma\'lumotlari.',
+            whyUs: 'Nega AutoFood?',
+            whyUsDesc: 'Raqobatchilarga nisbatan ustunliklarimiz'
         }
     },
     en: {
@@ -245,6 +353,23 @@ export const translations = {
             system: 'System',
             saveSettings: 'Save Settings',
             settingsSaved: 'Settings saved',
+        },
+        landing: {
+            heroTitle: 'Automate',
+            heroTitleSuffix: 'Your Business',
+            heroSubtitle: 'The perfect solution for restaurants and delivery services. Manage orders, track couriers, and increase profits.',
+            getStarted: 'Login to System',
+            contact: 'Contact Us',
+            features: 'Features',
+            automation: 'Automation Capabilities',
+            automationDesc: 'The AutoFood system will bring your business to maximum efficiency',
+            autoOrders: 'Automatic Orders',
+            autoOrdersDesc: 'Create automatic orders for your regular customers. The system will create and send orders to couriers daily, weekly, or monthly.',
+            realTime: 'Real-Time Tracking',
+            realTimeDesc: 'Track all your orders and couriers in one place. Statistics, reports, and real-time data.',
+            whyUs: 'Why AutoFood?',
+            whyUsDesc: 'Our advantages over competitors'
         }
     }
 }
+
