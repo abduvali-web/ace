@@ -74,7 +74,11 @@ model Customer {
   deliveryDays      String?
   autoOrdersEnabled Boolean  @default(true)
 
+
   orders            Order[]
+  clientMessages    ClientMessage[]
+  communityMessages ClientCommunityMessage[]
+
 
   @@map("customers")
 }
@@ -217,10 +221,94 @@ model Website {
   theme       String   // JSON: colors, fonts
   content     String   // JSON: multilingual text for landing page
   chatEnabled Boolean  @default(false) // Enable client-to-client chat
+  communityChatEnabled Boolean @default(true) // New field for group chat
+  communityMessages ClientCommunityMessage[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+
   admin       Admin    @relation(fields: [adminId], references: [id])
 
   @@map("websites")
+}
+
+model Ingredient {
+  id        String               @id @default(cuid())
+  name      String
+  quantity  Float                @default(0) // In kg or relevant unit
+  unit      String               @default("kg")
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  
+  menuItems MenuItemIngredient[]
+
+  @@map("ingredients")
+}
+
+model MenuItem {
+  id          String               @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  calories    Int
+  stock       Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  
+  ingredients MenuItemIngredient[]
+  dailyMenus  DailyMenu[]
+
+  @@map("menu_items")
+}
+
+model MenuItemIngredient {
+  id               String     @id @default(cuid())
+  menuItemId       String
+  ingredientId     String
+  quantityRequired Float      // Amount needed per 1 menu item
+  
+  menuItem         MenuItem   @relation(fields: [menuItemId], references: [id])
+  ingredient       Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@unique([menuItemId, ingredientId])
+  @@map("menu_item_ingredients")
+}
+
+model DailyMenu {
+  id        String     @id @default(cuid())
+  date      DateTime   @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  calorieGroup String   @default("standard")
+  menuItems    MenuItem[]
+
+  @@unique([date, calorieGroup])
+  @@map("daily_menus")
+}
+
+model ClientMessage {
+  id        String   @id @default(cuid())
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+  
+  sender    Customer @relation(fields: [senderId], references: [id])
+   
+  @@map("client_messages")
+}
+
+model ClientCommunityMessage {
+  id        String   @id @default(cuid())
+
+  senderId  String
+  websiteId String   // Links message to a specific middle admin's site/community
+  content   String
+  createdAt DateTime @default(now())
+
+  sender    Customer @relation(fields: [senderId], references: [id])
+  website   Website  @relation(fields: [websiteId], references: [id])
+
+  @@map("client_community_messages")
+  @@index([websiteId])
 }

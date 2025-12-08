@@ -81,6 +81,17 @@ export const translations = {
             system: 'Системная',
             saveSettings: 'Сохранить настройки',
             settingsSaved: 'Настройки сохранены',
+        },
+        landing: {
+            heroTitle: 'Автоматизируйте',
+            heroTitleSuffix: 'Свой Бизнес',
+            heroSubtitle: 'Мощные инструменты для управления доставкой, отслеживания заказов и координации курьеров.',
+            getStarted: 'Начать',
+            learnMore: 'Узнать больше',
+            features: 'Функции',
+            pricing: 'Цены',
+            contact: 'Контакты',
+            login: 'Войти'
         }
     },
     uz: {
@@ -163,6 +174,17 @@ export const translations = {
             system: 'Tizim',
             saveSettings: 'Sozlamalarni saqlash',
             settingsSaved: 'Sozlamalar saqlandi',
+        },
+        landing: {
+            heroTitle: 'Biznesingizni',
+            heroTitleSuffix: 'Avtomatlashtiring',
+            heroSubtitle: 'Yetkazib berishni boshqarish, buyurtmalarni kuzatish va kuryerlarni muvofiqlashtirish uchun kuchli vositalar.',
+            getStarted: 'Boshlash',
+            learnMore: 'Batafsil',
+            features: 'Imkoniyatlar',
+            pricing: 'Narxlar',
+            contact: 'Aloqa',
+            login: 'Kirish'
         }
     },
     en: {
@@ -245,6 +267,17 @@ export const translations = {
             system: 'System',
             saveSettings: 'Save Settings',
             settingsSaved: 'Settings saved',
+        },
+        landing: {
+            heroTitle: 'Automate',
+            heroTitleSuffix: 'Your Business',
+            heroSubtitle: 'Powerful tools for delivery management, order tracking, and courier coordination.',
+            getStarted: 'Get Started',
+            learnMore: 'Learn More',
+            features: 'Features',
+            pricing: 'Pricing',
+            contact: 'Contact',
+            login: 'Login'
         }
     }
 }
